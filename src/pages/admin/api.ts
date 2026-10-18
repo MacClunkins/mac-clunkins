@@ -5,6 +5,7 @@
 import { supabase } from '../../lib/supabase';
 import { isForwardTransition, validateResolution } from './logic/cases';
 import { canRetry } from './logic/payouts';
+import type { MoneyCheckInput } from './logic/moneyCheck';
 import { defFor, sameValue, validateSetting } from './logic/settings';
 import type {
   AllocationRow, AreaRow, CaseCostOwner, CaseEventRow, CaseResolution, CaseRow, CaseStatus,
@@ -602,4 +603,61 @@ export async function loadDriverParties(client: DbClient = db): Promise<Result<D
     id: d.profile_id, name: d.profile?.business_name || d.profile?.full_name || '', phone: d.profile?.whatsapp_phone ?? null,
     status: d.profile?.status ?? 'unknown', paused: !!d.paused, capacity_birds: d.capacity_birds ?? null, covered: !!d.covered,
   })));
+}
+
+/* ---------------------------------------------------------------- money check */
+
+
+const chunk = <T,>(xs: T[], n: number): T[][] => Array.from({ length: Math.ceil(xs.length / n) }, (_, i) => xs.slice(i * n, i * n + n));
+
+async function inChunks<T>(table: string, column: string, ids: string[], select = '*', client: DbClient = db): Promise<T[]> {
+  const out: T[] = [];
+  for (const part of chunk(ids, 40)) {
+    const r = await client.from(table).select(select).in(column, part);
+    if (r.error) throw r.error;
+    out.push(...((r.data ?? []) as T[]));
+  }
+  return out;
+}
+
+/** The latest orders with everything needed to check that the money adds up. Reads only what admins can already read. */
+export async function loadMoneyCheck(limit = 200, client: DbClient = db): Promise<Result<MoneyCheckInput[]>> {
+  try {
+    const o = await client.from('orders').select('id, number, status, total_cents, placed_at').order('placed_at', { ascending: false }).limit(limit);
+    if (o.error) return fail(o.error);
+    const orders = (o.data ?? []) as MoneyCheckInput['order'][];
+    const ids = orders.map((x) => x.id);
+    const [allocations, payments] = await Promise.all([
+      inChunks<AllocationRow>('admin_allocations', 'order_id', ids, '*', client),
+      inChunks<PaymentRow>('payments', 'order_id', ids, '*', client),
+    ]);
+    const trips = allocations.length ? await inChunks<TripRow>('admin_trips', 'allocation_id', allocations.map((a) => a.id), '*', client) : [];
+    const [byAlloc, byTrip] = await Promise.all([
+      allocations.length ? inChunks<TransferRow>('transfers', 'allocation_id', allocations.map((a) => a.id), '*', client) : [],
+      trips.length ? inChunks<TransferRow>('transfers', 'trip_id', trips.map((x) => x.id), '*', client) : [],
+    ]);
+    const transfers = [...byAlloc, ...byTrip];
+    // Proofs only exist once payment evidence is deployed; if the table is missing there are simply no payout fees.
+    let fees = new Map<string, number>();
+    try {
+      const proofs = transfers.length ? await inChunks<{ transfer_id: string; bank_fee_cents: number | null }>('transfer_proofs', 'transfer_id', transfers.map((x) => x.id), 'transfer_id, bank_fee_cents', client) : [];
+      fees = new Map(proofs.map((p) => [p.transfer_id, p.bank_fee_cents ?? 0]));
+    } catch { /* no payout fees to count */ }
+
+    const allocOrder = new Map(allocations.map((a) => [a.id, a.order_id]));
+    const tripOrder = new Map(trips.map((x) => [x.id, allocOrder.get(x.allocation_id) ?? '']));
+    const orderOfTransfer = (t: TransferRow) => (t.allocation_id ? allocOrder.get(t.allocation_id) : t.trip_id ? tripOrder.get(t.trip_id) : undefined);
+    return ok(orders.map((order) => {
+      const myAllocs = allocations.filter((a) => a.order_id === order.id);
+      const myTrips = trips.filter((x) => allocOrder.get(x.allocation_id) === order.id);
+      const myTransfers = transfers.filter((t) => orderOfTransfer(t) === order.id);
+      return {
+        order, allocations: myAllocs, trips: myTrips, transfers: myTransfers,
+        payments: payments.filter((p) => p.order_id === order.id),
+        payoutFeesCents: myTransfers.reduce((n, t) => n + (fees.get(t.id) ?? 0), 0),
+      };
+    }));
+  } catch (e) {
+    return fail({ message: (e as { message?: string }).message ?? 'Could not load the money check.' });
+  }
 }
