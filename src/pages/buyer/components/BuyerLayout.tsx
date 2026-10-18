@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../../auth/AuthContext';
 import { Button } from '../../../components/Button';
+import { useUnreadCount } from '../../supplier-driver-shared/InboxBody';
 import { t } from '../i18n-shim';
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
@@ -10,6 +11,7 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
 /** Buyer chrome. Own header (instead of DashboardShell) so order history can use the full desktop width. */
 export function BuyerLayout({ children, wide = false }: { children: ReactNode; wide?: boolean }) {
   const { profile, signOut } = useAuth();
+  const unread = useUnreadCount();
   return (
     <div className="min-h-screen bg-cream font-body text-ink">
       <header className="border-b border-ink/10 bg-white">
@@ -26,6 +28,9 @@ export function BuyerLayout({ children, wide = false }: { children: ReactNode; w
             </NavLink>
             <NavLink to="/orders/new" end className={navClass}>
               {t('buyer.nav.newOrder')}
+            </NavLink>
+            <NavLink to="/inbox" className={navClass}>
+              {t('buyer.nav.inbox')}{unread > 0 ? ` (${unread})` : ''}
             </NavLink>
             <NavLink to="/profile" className={navClass}>
               {t('buyer.nav.profile')}
