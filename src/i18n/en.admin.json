@@ -152,13 +152,13 @@
       "openOrder": "Open order", "noDetail": "No details were stored for this entry.", "orderHistory": "Full history",
       "entities": {"orders": "Orders", "quotes": "Quotes", "allocations": "Supplier jobs", "trips": "Trips", "payments": "Payments", "transfers": "Payouts", "incidents": "Incidents", "settings": "Settings", "areas_served": "Areas", "profiles": "People", "documents": "Documents", "cases": "Cases", "bank_statements": "Bank statements"},
       "action": {
-        "quote.requested": "Quote requested", "quote.created": "Instant quote created", "quote.priced": "Quote priced by admin",
-        "order.paid": "Order paid", "payment.manual": "Payment recorded by admin", "payment.proof_submitted": "Buyer sent proof of payment",
-        "payout.queued": "Payout queued", "payout.paid_manual": "Payout paid by EFT", "payout.success": "Payout succeeded", "payout.failed": "Payout failed",
-        "allocation.assigned": "Supplier assigned", "allocation.accepted": "Supplier accepted the job", "allocation.declined": "Supplier declined the job", "allocation.ready": "Supplier marked the load ready",
-        "order.scheduled": "Delivery scheduled", "order.rematched": "Supplier changed", "order.short_load": "Short load recorded", "trip.driver_assigned": "Driver assigned",
-        "incident.opened": "Incident opened", "incident.updated": "Incident updated", "admin.correction": "Count corrected by admin", "admin.force_delivery": "Delivery confirmed by admin",
-        "settings.update": "Setting changed", "areas_served.update": "Area changed", "bank_statement.added": "Bank statement filed"
+        "quote_requested": "Quote requested", "quote_created": "Instant quote created", "quote_priced": "Quote priced by admin",
+        "order_paid": "Order paid", "payment_manual": "Payment recorded by admin", "payment_proof_submitted": "Buyer sent proof of payment",
+        "payout_queued": "Payout queued", "payout_paid_manual": "Payout paid by EFT", "payout_success": "Payout succeeded", "payout_failed": "Payout failed",
+        "allocation_assigned": "Supplier assigned", "allocation_accepted": "Supplier accepted the job", "allocation_declined": "Supplier declined the job", "allocation_ready": "Supplier marked the load ready",
+        "order_scheduled": "Delivery scheduled", "order_rematched": "Supplier changed", "order_short_load": "Short load recorded", "trip_driver_assigned": "Driver assigned",
+        "incident_opened": "Incident opened", "incident_updated": "Incident updated", "admin_correction": "Count corrected by admin", "admin_force_delivery": "Delivery confirmed by admin",
+        "settings_update": "Setting changed", "areas_served_update": "Area changed", "bank_statement_added": "Bank statement filed"
       }
     },
     "quotes": {

@@ -11,7 +11,8 @@ const ENTITIES = ['orders', 'quotes', 'allocations', 'trips', 'payments', 'trans
 const PAGE = 100;
 
 export function actionLabel(action: string): string {
-  const key = `admin.audit.action.${action}`;
+  // action names contain dots (payment.manual), which the translation lookup would read as nesting
+  const key = `admin.audit.action.${action.replace(/\./g, '_')}`;
   const label = t(key);
   return label === key ? humanizeAction(action) : label;
 }
