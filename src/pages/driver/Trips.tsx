@@ -18,6 +18,7 @@ import { confirmDelivery, getSupportPhone, getTripStops, listTrips } from './dat
 import { currentTrip, earnedOn } from './earned';
 import { isValidDeliveryCode, navigateUrl } from './rules';
 import { looksOffline } from './sync';
+import { useShareLocation } from './useShareLocation';
 import type { DriverTrip, TripStops } from './types';
 
 function MapPane({ lat, lng }: { lat: number | null; lng: number | null }) {
@@ -49,6 +50,7 @@ export default function DriverTrips() {
   const upcoming = all.filter((x) => x.status === 'assigned' && x.id !== current?.id);
   const supportPhone = typeof phone.data?.value === 'string' ? phone.data.value : null;
   const toDrop = current?.status === 'picked_up';
+  useShareLocation(toDrop ? current?.id : null);
   const nav = stop
     ? toDrop
       ? navigateUrl(stop.drop_lat, stop.drop_lng, stop.drop_address)

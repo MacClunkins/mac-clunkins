@@ -120,6 +120,9 @@ export interface TrackingInfo {
   delivered_count: number | null;
   lat: number | null;
   lng: number | null;
+  /** 'live' = from the driver's position, 'window' = end of the scheduled delivery window. */
+  eta_source?: 'live' | 'window' | null;
+  location_updated_at?: string | null;
 }
 
 export interface CaseRow {
