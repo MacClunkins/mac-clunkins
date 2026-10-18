@@ -7,6 +7,8 @@ import { formatCents } from '../../lib/format';
 import { useSupabaseQuery } from '../../lib/useQuery';
 import { Card, Pill, Stat } from '../supplier-driver-shared/ui';
 import { t } from '../supplier-driver-shared/t';
+import { supabase } from '../../lib/supabase';
+import { openProof } from '../../lib/paymentProofs';
 import { SupplierNav } from './SupplierNav';
 import { getBankMasked, listTransfers, saveBankDetails } from './data';
 import type { BankMasked, SupplierTransfer } from './types';
@@ -19,6 +21,10 @@ export function statementCsv(rows: SupplierTransfer[]): string {
 
 export default function SupplierPayouts() {
   const transfers = useSupabaseQuery<SupplierTransfer[]>(() => listTransfers(), []);
+  const proofs = useSupabaseQuery<{ transfer_id: string; file_path: string; reference: string }[]>(
+    () => supabase.from('transfer_proofs').select('transfer_id, file_path, reference'), [],
+  );
+  const proofOf = (id: string) => (proofs.data ?? []).find((p) => p.transfer_id === id);
   const [tick, setTick] = useState(0);
   const bank = useSupabaseQuery<BankMasked>(() => getBankMasked(), [tick]);
   const [form, setForm] = useState({ bank_name: '', account_holder: '', account_number: '', branch_code: '' });
@@ -76,6 +82,12 @@ export default function SupplierPayouts() {
                     <p className="font-heading font-bold">{formatCents(r.amount_cents)}</p>
                     <p className="font-body text-xs text-ink/60">{new Date(r.created_at).toLocaleDateString('en-ZA')}</p>
                     {r.status === 'failed' && r.failure_reason && <p className="font-body text-xs text-chilli">{r.failure_reason}</p>}
+                    {proofOf(r.id) && (
+                      <p className="font-body text-xs text-ink/70">
+                        {t('supplier.pay.reference', { ref: proofOf(r.id)?.reference ?? '' })}{' · '}
+                        <button type="button" className="font-semibold text-chilli underline" onClick={() => void openProof(proofOf(r.id)?.file_path ?? '')}>{t('supplier.pay.proof')}</button>
+                      </p>
+                    )}
                   </div>
                   <Pill tone={r.status === 'success' ? 'good' : r.status === 'failed' ? 'bad' : 'warn'}>{t(`transfer.${r.status}`)}</Pill>
                 </li>
