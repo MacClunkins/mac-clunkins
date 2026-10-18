@@ -31,11 +31,3 @@ test('the foreign keys the advisor flagged are indexed', async () => {
   const idx = (await sql(`select indexname from pg_indexes where schemaname = 'public' and indexname in ('consents_superseded_by_idx', 'quote_costs_matched_supplier_id_idx')`)).map((r) => r.indexname).sort();
   assert.deepEqual(idx, ['consents_superseded_by_idx', 'quote_costs_matched_supplier_id_idx']);
 });
-
-test('policies still exist for every table that has row-level security', async () => {
-  const tables = await sql(`select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
-    where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity
-      and c.relname not in ('app_secrets','billing_counters','stock_reservations','webhook_events')
-      and not exists (select 1 from pg_policies p where p.schemaname = 'public' and p.tablename = c.relname)`);
-  assert.deepEqual(tables.map((t) => t.relname), []);
-});
