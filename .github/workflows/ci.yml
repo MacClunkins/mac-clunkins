@@ -30,9 +30,10 @@ jobs:
           # the path is whatever follows the tab; mode 120000 is a symlink, 160000 a submodule
           bad=$(printf '%s\n' "$entries" | awk -F'\t' '$1 ~ /^(120000|160000) /{print $2}')
           if [ -n "$bad" ]; then
-            echo "::error::Symlinks or submodules are committed"
-            # a file name is untrusted text: stop it being read as a workflow command
-            printf '%s\n' "$bad" | sed 's/^::/\\::/'
+            # File names are untrusted text. They go to the job summary (which is not parsed for workflow
+            # commands); the log only gets a fixed message and a count.
+            { echo "### Symlinks or submodules are committed"; echo; printf '%s\n' "$bad" | sed 's/^/- `/; s/$/`/'; } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::$(printf '%s\n' "$bad" | wc -l | tr -d ' ') symlink(s) or submodule(s) are committed; see the job summary for the paths"
             exit 1
           fi
       - uses: actions/setup-node@v4
