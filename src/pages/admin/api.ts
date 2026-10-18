@@ -661,6 +661,8 @@ export async function loadMoneyCheck(limit = 200, client: DbClient = db): Promis
   } catch (e) {
     return fail({ message: (e as { message?: string }).message ?? 'Could not load the money check.' });
   }
+}
+
 /* ---------------------------------------------------------------- audit log */
 
 
