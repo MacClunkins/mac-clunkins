@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '../../components/Button';
 import { FormError } from '../../components/FormField';
 import { loadTransfers, retryTransfer } from './api';
+import { PaidByEftForm, StatementsCard } from './PayoutEvidence';
 import { useAdminData } from './hooks/useAdminData';
 import { downloadCsv } from './logic/csv';
 import { bankFileRows, canRetry } from './logic/payouts';
@@ -17,6 +18,7 @@ export default function AdminPayouts() {
   const [msg, setMsg] = useState<string | null>(null);
   const { data, loading, error, reload } = useAdminData(loadTransfers, []);
   const { ask, dialog } = useConfirm();
+  const [payingId, setPayingId] = useState<string | null>(null);
   const all = data ?? [];
   const rows = tab === 'all' ? all : all.filter((r) => r.status === tab);
   const sum = (s: TransferStatus) => all.filter((r) => r.status === s).reduce((a, r) => a + r.amount_cents, 0);
@@ -61,10 +63,23 @@ export default function AdminPayouts() {
             { key: 'c', header: t('admin.payouts.col.code'), render: (r) => r.paystack_transfer_code ?? '-' },
             { key: 'f', header: t('admin.payouts.col.reason'), render: (r) => r.failure_reason ?? '-' },
             { key: 'd', header: t('admin.payouts.col.date'), render: (r) => formatDateTime(r.created_at) },
-            { key: 'x', header: '', render: (r) => (canRetry(r.status) ? <Button variant="secondary" onClick={() => retry(r)}>{t('admin.payouts.retry')}</Button> : null) },
+            { key: 'x', header: '', render: (r) => (
+              <span className="flex gap-2">
+                {canRetry(r.status) ? <Button variant="secondary" onClick={() => retry(r)}>{t('admin.payouts.retry')}</Button> : null}
+                {r.status !== 'success' && r.status !== 'reversed' ? <Button variant="secondary" onClick={() => setPayingId(r.id)}>{t('admin.payouts.paidByEft')}</Button> : null}
+              </span>
+            ) },
           ]}
         />
       </LoadState>
+      {payingId && (
+        <PaidByEftForm
+          transfer={all.find((x) => x.id === payingId)!}
+          onClose={() => setPayingId(null)}
+          onDone={() => { setPayingId(null); reload(); }}
+        />
+      )}
+      <StatementsCard />
       <p className="mt-3 font-body text-xs text-ink/50">{t('admin.payouts.bankNote')}</p>
       {dialog}
     </AdminLayout>

@@ -5,6 +5,8 @@ import { formatCents } from '../../lib/format';
 import { useSupabaseQuery } from '../../lib/useQuery';
 import { Card, Pill, Stat } from '../supplier-driver-shared/ui';
 import { t } from '../supplier-driver-shared/t';
+import { supabase } from '../../lib/supabase';
+import { openProof } from '../../lib/paymentProofs';
 import { DriverNav } from './DriverNav';
 import { listDriverTransfers, listTrips } from './data';
 import { earningsByDay, pastTrips } from './earned';
@@ -13,6 +15,10 @@ import type { DriverTransfer, DriverTrip } from './types';
 export default function DriverEarnings() {
   const trips = useSupabaseQuery<DriverTrip[]>(() => listTrips(), []);
   const transfers = useSupabaseQuery<DriverTransfer[]>(() => listDriverTransfers(), []);
+  const proofs = useSupabaseQuery<{ transfer_id: string; file_path: string; reference: string }[]>(
+    () => supabase.from('transfer_proofs').select('transfer_id, file_path, reference'), [],
+  );
+  const proofOf = (id: string) => (proofs.data ?? []).find((p) => p.transfer_id === id);
   const days = earningsByDay(trips.data ?? [], new Date());
   const history = pastTrips(trips.data ?? []);
   const week = days.reduce((n, d) => n + d.cents, 0);
@@ -70,6 +76,12 @@ export default function DriverEarnings() {
                   <div>
                     <p className="font-heading font-bold">{formatCents(x.amount_cents)}</p>
                     <p className="font-body text-xs text-ink/60">{new Date(x.created_at).toLocaleDateString('en-ZA')}</p>
+                    {proofOf(x.id) && (
+                      <p className="font-body text-xs text-ink/70">
+                        {t('driver.earn.reference', { ref: proofOf(x.id)?.reference ?? '' })}{' · '}
+                        <button type="button" className="font-semibold text-chilli underline" onClick={() => void openProof(proofOf(x.id)?.file_path ?? '')}>{t('driver.earn.proof')}</button>
+                      </p>
+                    )}
                   </div>
                   <Pill tone={x.status === 'success' ? 'good' : x.status === 'failed' ? 'bad' : 'warn'}>{t(`transfer.${x.status}`)}</Pill>
                 </li>

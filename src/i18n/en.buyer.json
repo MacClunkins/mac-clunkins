@@ -68,7 +68,7 @@
         "branch": "Branch code",
         "type": "Account type",
         "reference": "Reference",
-        "afterPay": "We check payments by hand. Once yours is confirmed your receipt appears on this page.",
+        "afterPay": "We check payments by hand. Once yours is confirmed your receipt appears on this page.", "proofTitle": "Send your proof of payment", "proofHelp": "Paid already? Upload the bank slip or a screenshot so we can match your payment faster.", "proofFile": "Proof of payment file", "proofSend": "Send proof", "proofSent": "Sent. We will check it against the bank.", "proofError": "Couldn't send that file. Please try again.", "proofSentOn": "Sent on {date}", "proofView": "View",
         "docsTitle": "Invoice and receipt",
         "noDocs": "No documents yet.",
         "download": "Download PDF",
