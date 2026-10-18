@@ -10,7 +10,7 @@ import { useAsync } from './hooks/useAsync';
 import { useNow } from './hooks/useNow';
 import { t } from './i18n-shim';
 import { formatDateTime } from './lib/dates';
-import { redirectToCheckout, startCheckout } from './lib/payments';
+import { issueQuoteDocument, openBillingPdf } from '../../lib/billing';
 import { remainingMs } from './lib/quote';
 
 export default function QuoteReady() {
@@ -25,19 +25,18 @@ export default function QuoteReady() {
   const expired = !!q?.expires_at && remainingMs(q.expires_at, now) === 0;
   const open = !!q && q.status === 'open' && !expired;
 
-  async function onPay() {
+  // Review and pay decides what happens next: place the order (manual payments) or go to Paystack.
+  function onContinue() {
+    if (q) navigate(`/orders/new/pay?quote=${q.id}`);
+  }
+
+  async function onDownload() {
     if (!q) return;
-    setBusy(true);
     setActionError(null);
     try {
-      if (q.paystack_payment_link) {
-        redirectToCheckout(q.paystack_payment_link);
-      } else {
-        redirectToCheckout((await startCheckout(q.id)).authorizationUrl);
-      }
+      await openBillingPdf(await issueQuoteDocument(q.id));
     } catch {
-      setActionError(t('buyer.pay.initError'));
-      setBusy(false);
+      setActionError(t('buyer.quoteReady.pdfError'));
     }
   }
 
@@ -84,8 +83,11 @@ export default function QuoteReady() {
           <FormError message={actionError} />
           {open && (
             <div className="flex flex-wrap gap-3">
-              <Button disabled={busy} onClick={() => void onPay()}>
+              <Button disabled={busy} onClick={onContinue}>
                 {t('buyer.quoteReady.pay')}
+              </Button>
+              <Button variant="secondary" disabled={busy} onClick={() => void onDownload()}>
+                {t('buyer.quoteReady.download')}
               </Button>
               {!confirmDecline ? (
                 <Button variant="secondary" disabled={busy} onClick={() => setConfirmDecline(true)}>

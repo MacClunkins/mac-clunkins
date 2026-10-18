@@ -127,6 +127,22 @@ export async function getQuote(id: string): Promise<BuyerQuote> {
   return data as BuyerQuote;
 }
 
+export interface QuoteListRow {
+  id: string; bird_type: string; weight_band: string; quantity: number; total_cents: number | null;
+  kind: 'instant' | 'requested'; status: string; expires_at: string | null; created_at: string;
+}
+
+/** The buyer's open quotes: priced ones waiting for them, and requests still waiting for a price. */
+export async function listQuotes(): Promise<QuoteListRow[]> {
+  const { data, error } = await supabase
+    .from('buyer_quotes')
+    .select('id, bird_type, weight_band, quantity, total_cents, kind, status, expires_at, created_at')
+    .eq('status', 'open')
+    .order('created_at', { ascending: false });
+  if (error) fail(error);
+  return (data ?? []) as QuoteListRow[];
+}
+
 export async function declineQuote(id: string): Promise<void> {
   const { error } = await supabase.rpc('decline_quote', { p_quote_id: id });
   if (error) fail(error);
