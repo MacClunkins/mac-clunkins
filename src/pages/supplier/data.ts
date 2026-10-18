@@ -81,17 +81,15 @@ export const listProvinces = () => supabase.from('provinces').select('code, name
 
 export const listDocuments = () => supabase.from('documents').select(DOCUMENT_COLUMNS);
 
+/** Adds or replaces a document. The database sets the status to uploaded, so an admin reviews it again. */
 export async function saveDocument(
-  profileId: string,
+  _profileId: string,
   kind: string,
-  existingId: string | null,
+  _existingId: string | null,
   filePath: string,
   expiresOn: string | null,
 ) {
-  const row = { file_path: filePath, status: 'uploaded', expires_on: expiresOn };
-  return existingId
-    ? supabase.from('documents').update(row).eq('id', existingId)
-    : supabase.from('documents').insert({ profile_id: profileId, kind, ...row });
+  return supabase.rpc('submit_document', { p_kind: kind, p_file_path: filePath, p_expires_on: expiresOn });
 }
 
 // RLS limits transfers to the caller's own rows.

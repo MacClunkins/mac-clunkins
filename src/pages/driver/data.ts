@@ -33,11 +33,9 @@ export const saveDriverVehicle = (profileId: string, v: DriverVehicle) =>
   supabase.from('driver_details').upsert({ profile_id: profileId, ...v }, { onConflict: 'profile_id' });
 
 export const listDriverDocuments = () => supabase.from('documents').select(DRIVER_DOCUMENT_COLUMNS);
-export async function saveDriverDocument(profileId: string, kind: string, existingId: string | null, filePath: string, expiresOn: string | null) {
-  const row = { file_path: filePath, status: 'uploaded', expires_on: expiresOn };
-  return existingId
-    ? supabase.from('documents').update(row).eq('id', existingId)
-    : supabase.from('documents').insert({ profile_id: profileId, kind, ...row });
+/** Adds or replaces a document. The database sets the status to uploaded, so an admin reviews it again. */
+export async function saveDriverDocument(_profileId: string, kind: string, _existingId: string | null, filePath: string, expiresOn: string | null) {
+  return supabase.rpc('submit_document', { p_kind: kind, p_file_path: filePath, p_expires_on: expiresOn });
 }
 
 // Latest position for a trip that is on the road. The database ignores it unless the trip is picked up.
