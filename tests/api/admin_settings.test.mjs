@@ -44,6 +44,20 @@ test('bad values and unknown keys are rejected and change nothing', async () => 
   assert.equal((await sql(`select value from public.settings where key = 'payments_mode'`))[0].value, 'manual');
 });
 
+test('keys outside the allowlist and out-of-range values are refused', async () => {
+  await c.query(`insert into public.settings (key, value, is_public) values ('paystack_mode', '"test"', false) on conflict (key) do nothing`);
+  for (const bad of [
+    '{"paystack_mode":"live"}', '{"is_public":true}', '{"markup_pct":101}', '{"markup_pct":"15"}', '{"markup_pct":null}',
+    '{"min_order":2.5}', '{"quote_hold_minutes":0}', '{"journey_warn_hours":25}',
+  ]) {
+    const r = await actTry(c, ID.admin, 'select public.admin_update_settings($1::jsonb)', [bad]);
+    assert.equal(r.error?.code, '22023', bad);
+  }
+  assert.equal((await sql(`select value from public.settings where key = 'paystack_mode'`))[0].value, 'test');
+  const ok = await actTry(c, ID.admin, `select public.admin_update_settings('{"markup_pct":12.5,"delivery_timeline":null}'::jsonb)`);
+  assert.ok(!ok.error, ok.error?.message);
+});
+
 test('non-admins and anon cannot call the settings or area RPCs', async () => {
   for (const [uid, role] of [[ID.buyer, 'authenticated'], [ID.s4, 'authenticated'], [null, 'anon']]) {
     const s = await actTry(c, uid, `select public.admin_update_settings('{"payments_mode":"paystack"}'::jsonb)`, [], role);

@@ -3,6 +3,9 @@
 -- "permission denied for table audit_log". These two functions do the write server-side instead:
 -- admin check inside, one audit row per changed key, then the update, all in one transaction.
 
+-- Only the keys the admin screen edits are writable here, each with a type and range check, so a
+-- browser cannot flip integration keys (paystack_mode, email_mode, ...) or store a value the screen
+-- would have rejected. Spec per key: type, then optional min / max, and `int` for whole numbers.
 create or replace function public.admin_update_settings(p_changes jsonb)
 returns jsonb
 language plpgsql
@@ -10,9 +13,32 @@ security definer
 set search_path = ''
 as $$
 declare
+  spec constant jsonb := '{
+    "markup_pct":              {"type":"number","min":0,"max":100},
+    "service_fee_pct":         {"type":"number","min":0,"max":100},
+    "driver_share_pct":        {"type":"number","min":0,"max":100},
+    "min_margin_cents":        {"type":"number","min":0,"int":true},
+    "delivery_base_cents":     {"type":"number","min":0,"int":true},
+    "delivery_per_km_cents":   {"type":"number","min":0,"int":true},
+    "delivery_per_bird_cents": {"type":"number","min":0,"int":true},
+    "quote_hold_minutes":      {"type":"number","min":1,"max":1440,"int":true},
+    "rfq_min_birds":           {"type":"number","min":1,"int":true},
+    "rfq_max_km":              {"type":"number","min":1,"int":true},
+    "min_order":               {"type":"number","min":1,"int":true},
+    "unpaid_cancel_hours":     {"type":"number","min":1,"max":720,"int":true},
+    "issue_window_hours":      {"type":"number","min":1,"max":720,"int":true},
+    "heat_warn_c":             {"type":"number","min":0,"max":60},
+    "journey_warn_hours":      {"type":"number","min":0.5,"max":24},
+    "delivery_timeline":       {"type":"string","nullable":true},
+    "support_phone":           {"type":"string"},
+    "payments_mode":           {"type":"string","in":["manual","paystack"]},
+    "company_profile":         {"type":"object"},
+    "languages_enabled":       {"type":"array"}
+  }'::jsonb;
   k       text;
   v       jsonb;
   old_v   jsonb;
+  sp      jsonb;
   changed text[] := '{}';
 begin
   if not public.is_admin() then
@@ -23,15 +49,46 @@ begin
   end if;
 
   for k, v in select * from jsonb_each(p_changes) loop
-    select s.value into old_v from public.settings s where s.key = k;
+    -- Message templates (msg.*) are free text; everything else needs a spec.
+    if k like 'msg.%' then
+      sp := '{"type":"string"}'::jsonb;
+    else
+      sp := spec -> k;
+    end if;
+    if sp is null then
+      raise exception 'setting % cannot be changed here', k using errcode = '22023';
+    end if;
+
+    if jsonb_typeof(v) = 'null' then
+      if coalesce((sp ->> 'nullable')::boolean, false) is not true then
+        raise exception '% cannot be empty', k using errcode = '22023';
+      end if;
+    else
+      if jsonb_typeof(v) <> sp ->> 'type' then
+        raise exception '% must be a %', k, sp ->> 'type' using errcode = '22023';
+      end if;
+      if sp ->> 'type' = 'number' then
+        if sp ? 'min' and (v #>> '{}')::numeric < (sp ->> 'min')::numeric then
+          raise exception '% is below the minimum', k using errcode = '22023';
+        end if;
+        if sp ? 'max' and (v #>> '{}')::numeric > (sp ->> 'max')::numeric then
+          raise exception '% is above the maximum', k using errcode = '22023';
+        end if;
+        if coalesce((sp ->> 'int')::boolean, false) and (v #>> '{}')::numeric <> trunc((v #>> '{}')::numeric) then
+          raise exception '% must be a whole number', k using errcode = '22023';
+        end if;
+      end if;
+      if sp ? 'in' and not (sp -> 'in') @> jsonb_build_array(v #>> '{}') then
+        raise exception '% has an unsupported value', k using errcode = '22023';
+      end if;
+      if k like 'msg.%' and btrim(v #>> '{}') = '' then
+        raise exception '% cannot be empty', k using errcode = '22023';
+      end if;
+    end if;
+
+    select s.value into old_v from public.settings s where s.key = k for update;
     if not found then
       raise exception 'unknown setting %', k using errcode = '22023';
-    end if;
-    if k = 'payments_mode' and (v is null or v not in ('"manual"'::jsonb, '"paystack"'::jsonb)) then
-      raise exception 'payments_mode must be manual or paystack' using errcode = '22023';
-    end if;
-    if k = 'company_profile' and jsonb_typeof(v) <> 'object' then
-      raise exception 'company_profile must be an object' using errcode = '22023';
     end if;
     if old_v is not distinct from v then continue; end if;
 
