@@ -11,6 +11,7 @@ import type { ApiError } from './api';
 export const NAV: { to: string; key: string; end?: boolean }[] = [
   { to: '/admin', key: 'dashboard', end: true },
   { to: '/admin/orders', key: 'orders' },
+  { to: '/admin/incidents', key: 'incidents' },
   { to: '/admin/quotes', key: 'quotes' },
   { to: '/admin/schedule', key: 'schedule' },
   { to: '/admin/users', key: 'users' },

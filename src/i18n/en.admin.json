@@ -4,7 +4,7 @@
     "logout": "Log out",
     "nav": {
       "label": "Admin sections",
-      "dashboard": "Dashboard", "orders": "Orders", "quotes": "Quotes", "schedule": "Schedule", "users": "Users", "cases": "Cases",
+      "dashboard": "Dashboard", "orders": "Orders", "incidents": "Incidents", "quotes": "Quotes", "schedule": "Schedule", "users": "Users", "cases": "Cases",
       "payouts": "Payouts", "compliance": "Compliance", "reports": "Reports", "settings": "Settings"
     },
     "common": {
@@ -145,6 +145,20 @@
       "spend": "Spend", "jobs": "Jobs", "collected": "Collected", "trips": "Trips", "delivered": "Delivered", "rating": "Rating",
       "kpi": { "orders": "Orders", "sales": "Sales", "margin": "Margin", "birds": "Birds sold", "aov": "Average order" },
       "section": { "daily": "Revenue and margin by day", "areas": "Chickens by area", "buyers": "Top buyers", "suppliers": "Supplier performance", "drivers": "Driver performance" }
+    },
+    "incidents": {
+      "title": "Incidents", "subtitle": "Anything that went wrong on a job: reported by a supplier or driver, or noticed by the system. Work each one to a close, with a note.",
+      "tabOpen": "Open", "tabReview": "Being looked at", "tabClosed": "Closed", "none": "Nothing here.", "bySystem": "Noticed by the system",
+      "severity": {"info": "Info", "warn": "Needs a look", "critical": "Urgent"},
+      "status": {"open": "Open", "in_review": "Being looked at", "resolved": "Resolved", "dismissed": "Dismissed"},
+      "kind": {"short_load": "Short load", "crate_capacity": "Crate capacity", "count_mismatch": "Counts disagree", "count_correction": "Count correction", "delivery_override": "Delivery confirmed by hand", "vehicle": "Vehicle", "access": "Access", "payout_question": "Payout question", "other": "Other"},
+      "data": {"ordered": "Birds ordered", "collected": "Birds collected", "supplier_count": "Supplier counted", "driver_count": "Driver counted", "crates": "Crates", "per_crate": "Birds per crate", "reason": "Reason given", "delivered": "Birds delivered"},
+      "openOrder": "Open order {number}", "resolution": "How it was closed", "history": "History", "noEvents": "No notes yet.", "shared": "shared with the reporter",
+      "note": "Note", "share": "Share this note with the person who reported it", "startReview": "Start looking at it", "resolve": "Resolve", "dismiss": "Dismiss", "reopen": "Reopen", "addNote": "Add note only",
+      "fixes": "Fix the record", "reason": "Reason (kept in the audit log)", "newCount": "Correct pickup count", "correct": "Correct count",
+      "correctTitle": "Correct the pickup count?", "correctBody": "The pickup count becomes {count} and the supplier payout follows it. Reason: {reason}",
+      "force": "Confirm delivery by hand", "forceTitle": "Confirm this delivery without the buyer's code?", "forceBody": "The order is marked delivered and the driver payout is queued. This is recorded as an incident. Reason: {reason}",
+      "fixesHelp": "A count can only be corrected before the supplier payout is sent. Every fix is written to the audit log."
     },
     "quotes": {
       "title": "Quotes", "subtitle": "Quote requests from buyers. Price each one by choosing which suppliers fill it. The buyer is then able to see the price and place the order.",
