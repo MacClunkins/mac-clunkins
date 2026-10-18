@@ -57,7 +57,8 @@ test('accept, save details, mark ready; each step is audited and ready needs the
   assert.match((await actTry(c, ID.s4, 'select public.supplier_mark_ready($1)', [al.id])).error.message, /need_photo/);
   await act(c, ID.s4, `select public.supplier_update_allocation($1, $2::jsonb)`, [al.id, JSON.stringify({ load_photo_path: 'load/1.jpg' })]);
   assert.match((await actTry(c, ID.s4, 'select public.supplier_mark_ready($1)', [al.id])).error.message, /need_permit/);
-  const soon = new Date(Date.now() - 60_000).toISOString();
+  // Postgres now() is the transaction start, so use a time that is clearly in the past, not 'a minute ago'.
+  const soon = new Date(Date.now() - 24 * 3600_000).toISOString();
   await act(c, ID.s4, `select public.supplier_update_allocation($1, $2::jsonb)`, [al.id, JSON.stringify({ removal_permit_path: 'permits/1.pdf', permit_valid_until: soon })]);
   assert.match((await actTry(c, ID.s4, 'select public.supplier_mark_ready($1)', [al.id])).error.message, /permit_expired/);
   await act(c, ID.s4, `select public.supplier_update_allocation($1, $2::jsonb)`, [al.id, JSON.stringify({ permit_valid_until: new Date(Date.now() + 36 * 3600_000).toISOString() })]);

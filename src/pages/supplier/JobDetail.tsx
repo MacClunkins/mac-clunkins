@@ -12,6 +12,7 @@ import { t } from '../supplier-driver-shared/t';
 import { SupplierNav } from './SupplierNav';
 import { formatCountdown, permitValidUntil, usePermitCountdown, PERMIT_WINDOW_HOURS } from './permit';
 import { readyBlockers } from './logic';
+import { friendlyError } from '../supplier-driver-shared/errors';
 import { getAllocation, markAllocationReady, saveAllocationProgress } from './data';
 import type { SupplierAllocation } from './types';
 
@@ -45,7 +46,7 @@ export default function SupplierJobDetail() {
     setMsg(null);
     const { error: e } = await fn();
     setBusy(false);
-    if (e) setMsg(e.message);
+    if (e) setMsg(friendlyError(e.message));
     else setTick((n) => n + 1);
   }
 
@@ -98,6 +99,11 @@ export default function SupplierJobDetail() {
           </div>
           <p className="mt-1 font-body text-sm text-ink/60">{t('supplier.job.no_buyer')}</p>
           <FormError message={msg} />
+          {job.status === 'ready' && (
+            <p className="mt-2 rounded-xl bg-mustard/25 px-4 py-2 font-body text-sm" data-testid="job-locked">
+              {t('supplier.job.locked_help')} <Link to="/supplier/help" className="font-semibold underline">{t('supplier.nav.help')}</Link>
+            </p>
+          )}
 
           {/* Tablet loading area: two panels from lg up, stacked on a phone. */}
           <div className="mt-6 grid gap-4 lg:grid-cols-2">

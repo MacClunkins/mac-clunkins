@@ -14,7 +14,7 @@ export async function sendQueued(a: QueuedAction, userId: string): Promise<void>
   }
   const res =
     a.kind === 'pickup'
-      ? await confirmPickup({ p_trip_id: a.tripId, p_count: Number(a.payload.count), p_photo_path: photoPath })
+      ? await confirmPickup({ p_trip_id: a.tripId, p_count: Number(a.payload.count), p_photo_path: photoPath, p_short_reason: (a.payload.short_reason as string | null | undefined) ?? null })
       : await confirmDelivery({
           p_trip_id: a.tripId,
           p_code: String(a.payload.code),
