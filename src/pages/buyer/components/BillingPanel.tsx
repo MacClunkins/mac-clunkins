@@ -3,6 +3,7 @@ import { getPaymentInstructions, listBillingDocs, openBillingPdf, type BillingDo
 import { formatCents } from '../../../lib/format';
 import { Card } from './BuyerLayout';
 import { t } from '../i18n-shim';
+import { ProofUpload } from './ProofUpload';
 
 /** Manual-payment mode: EFT instructions while unpaid, plus the invoice/receipt PDFs. */
 export function BillingPanel({ orderId, unpaid }: { orderId: string; unpaid: boolean }) {
@@ -37,6 +38,7 @@ export function BillingPanel({ orderId, unpaid }: { orderId: string; unpaid: boo
             <dt className="text-ink/60">{t('buyer.billing.reference')}</dt><dd className="font-semibold">{info.reference}</dd>
           </dl>
           <p className="mt-2 text-xs text-ink/60">{t('buyer.billing.afterPay')}</p>
+          <div className="mt-4"><ProofUpload orderId={orderId} /></div>
         </div>
       )}
       <h2 className="font-heading font-bold">{t('buyer.billing.docsTitle')}</h2>

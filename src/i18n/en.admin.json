@@ -129,7 +129,8 @@
       "timeline": "Timeline", "visibleToBuyer": "Visible to buyer", "internal": "Internal note", "reply": "Write a reply or note", "send": "Add to timeline"
     },
     "payouts": {
-      "title": "Payouts", "subtitle": "Paystack transfers to suppliers and drivers.", "emptyTitle": "No transfers", "retry": "Retry", "retryTitle": "Retry this transfer?",
+      "title": "Payouts", "subtitle": "Paystack transfers to suppliers and drivers.", "emptyTitle": "No transfers", "retry": "Retry", "paidByEft": "Paid by EFT", "paidTitle": "Mark the payout to {name} as paid", "paidBody": "Pay them outside the app, then record it here. Amount:", "bankReference": "Bank reference", "proof": "Proof of payment (slip or screenshot)", "proofRequired": "Attach the proof of payment first.", "markPaid": "Mark as paid", "paidNote": "The supplier or driver can open this proof from their own payouts page.",
+      "statements": "Bank statements", "statementsHelp": "File each bank statement so every payment, payout and bank fee can be traced to a document.", "statementFile": "Statement file", "periodFrom": "From", "periodTo": "To", "statementUpload": "Upload statement", "retryTitle": "Retry this transfer?",
       "retryBody": "Paystack will try to pay {name} again:", "bankFile": "Bank file (CSV)", "bankNote": "Bank file lists queued and failed transfers as a fallback if Paystack cannot pay them.",
       "col": { "party": "Payee", "type": "Type", "amount": "Amount", "status": "Status", "code": "Transfer code", "reason": "Failure reason", "date": "Created" }
     },
@@ -246,7 +247,7 @@
         "note": "Note",
         "markPaid": "Mark as paid",
         "markPaidNote": "Use this once the full amount has reached the bank account. It issues the receipt and releases the order for scheduling.",
-        "notPayable": "This order is not awaiting payment.",
+        "notPayable": "This order is not awaiting payment.", "bankFee": "Bank fee on this payment (R, optional)", "bankFeeHelp": "What the bank charged to receive it. Leave empty if there was no charge.", "feeInvalid": "Enter the fee in rand, for example 12.50.", "buyerProofs": "Proof of payment from the buyer", "noProofs": "The buyer has not sent a slip yet.", "viewProof": "View",
         "download": "Download PDF",
         "methods": {
             "eft": "EFT",
