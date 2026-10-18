@@ -489,13 +489,12 @@ export async function loadAreas(): Promise<Result<AreaRow[]>> {
 export interface UpdateSettingsResult { error: ApiError | null; changed: string[] }
 
 /**
- * Validates, writes one audit_log row per changed key (before/after), THEN updates settings.
- * If validation or the audit insert fails nothing is changed. Values apply to new quotes only.
- * TODO(backend): RLS currently grants admins SELECT only on settings and audit_log; add admin
- * INSERT on audit_log and UPDATE on settings (or wrap this in an rpc) before this works live.
+ * Validates the changed keys, then sends them to `admin_update_settings`, which checks the caller is
+ * an admin, writes one audit_log row per key (before/after) and updates settings in one transaction.
+ * Admins have no direct write grant on settings or audit_log. Values apply to new quotes only.
  */
 export async function updateSettings(
-  actorId: string,
+  _actorId: string,
   current: SettingsMap,
   next: SettingsMap,
   client: DbClient = db,
@@ -510,23 +509,14 @@ export async function updateSettings(
     }
   }
   if (!changed.length) return { error: null, changed };
-  const audit = await client.from('audit_log').insert(
-    changed.map((key) => ({
-      actor_id: actorId, action: 'settings.update', entity: 'settings', entity_id: key,
-      before: { value: current[key] ?? null }, after: { value: next[key] },
-    })),
-  );
-  if (audit.error) return { error: audit.error, changed: [] };
-  const now = new Date().toISOString();
-  for (const key of changed) {
-    const r = await client.from('settings').update({ value: next[key], updated_at: now, updated_by: actorId }).eq('key', key);
-    if (r.error) return { error: r.error, changed };
-  }
-  return { error: null, changed };
+  const r = await client.rpc('admin_update_settings', {
+    p_changes: Object.fromEntries(changed.map((k) => [k, next[k]])),
+  });
+  return r.error ? { error: r.error, changed: [] } : { error: null, changed };
 }
 
 export async function updateArea(
-  actorId: string,
+  _actorId: string,
   before: Pick<AreaRow, 'province' | 'active' | 'launch_order'>,
   after: Pick<AreaRow, 'active' | 'launch_order'>,
   client: DbClient = db,
@@ -534,11 +524,60 @@ export async function updateArea(
   if (after.launch_order !== null && (!Number.isInteger(after.launch_order) || after.launch_order < 1)) {
     return fail({ message: 'not_integer', code: 'not_integer' });
   }
-  const audit = await client.from('audit_log').insert({
-    actor_id: actorId, action: 'areas_served.update', entity: 'areas_served', entity_id: before.province,
-    before: { active: before.active, launch_order: before.launch_order }, after,
+  const r = await client.rpc('admin_update_area', {
+    p_province: before.province, p_active: after.active, p_launch_order: after.launch_order,
   });
-  if (audit.error) return fail(audit.error);
-  const r = await client.from('areas_served').update(after).eq('province', before.province);
+  return r.error ? fail(r.error) : ok(null);
+}
+
+/* --------------------------------------------------------------------- quotes */
+
+export interface QuoteRequestRow {
+  id: string; buyer_id: string; kind: 'instant' | 'requested'; status: 'open' | 'accepted' | 'expired' | 'declined';
+  bird_type: string; weight_band: string; quantity: number; total_cents: number | null;
+  expires_at: string | null; created_at: string;
+  buyer?: NameRef | null; address?: { town: string | null; province: string | null } | null;
+}
+
+export interface QuoteCandidate {
+  supplier_id: string; supplier_name: string; price_cents: number; distance_km: number;
+  same_province: boolean; stock_available: number; rating_avg: number | null;
+}
+
+export async function loadQuotes(): Promise<Result<QuoteRequestRow[]>> {
+  const r = await db.from('admin_quotes')
+    .select('id, buyer_id, kind, status, bird_type, weight_band, quantity, total_cents, expires_at, created_at, address_id')
+    .order('created_at', { ascending: false }).limit(200);
+  if (r.error) return fail(r.error);
+  const rows = (r.data ?? []) as (QuoteRequestRow & { address_id: string })[];
+  const names = await namesFor(rows.map((x) => x.buyer_id));
+  const ids = [...new Set(rows.map((x) => x.address_id))];
+  const addr = ids.length ? await db.from('addresses').select('id, town, province').in('id', ids) : { data: [] };
+  const addrMap = new Map(((addr.data ?? []) as any[]).map((a) => [a.id, { town: a.town, province: a.province }]));
+  return ok(rows.map((x) => ({ ...x, buyer: names.get(x.buyer_id) ?? null, address: addrMap.get(x.address_id) ?? null })));
+}
+
+export async function loadQuoteCandidates(quoteId: string, client: DbClient = db): Promise<Result<QuoteCandidate[]>> {
+  const r = await client.rpc('admin_match_preview', { p_quote_id: quoteId });
+  if (r.error) return fail(r.error);
+  const rows = (r.data ?? []) as Omit<QuoteCandidate, 'supplier_name'>[];
+  const names = await namesFor(rows.map((x) => x.supplier_id), client);
+  return ok(rows.map((x) => ({ ...x, supplier_name: displayNameOf(names.get(x.supplier_id)) })));
+}
+
+function displayNameOf(n?: NameRef | null): string {
+  return n ? (n.business_name || n.full_name) : '';
+}
+
+export interface QuoteAllocation { supplier_id: string; birds: number; price_cents: number }
+
+/** Prices an open requested quote. The database checks the birds add up to the quote quantity. */
+export async function priceQuote(quoteId: string, allocations: QuoteAllocation[], client: DbClient = db): Promise<Result<null>> {
+  const total = allocations.reduce((a, x) => a + x.birds, 0);
+  if (!allocations.length || allocations.some((x) => !Number.isInteger(x.birds) || x.birds < 1)) {
+    return fail({ message: 'allocation_invalid', code: 'allocation_invalid' });
+  }
+  if (total < 1) return fail({ message: 'allocation_invalid', code: 'allocation_invalid' });
+  const r = await client.rpc('admin_price_quote', { p_quote_id: quoteId, p_allocations: allocations });
   return r.error ? fail(r.error) : ok(null);
 }
