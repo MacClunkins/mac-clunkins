@@ -1,6 +1,6 @@
 // All supplier data access lives here. Reads go through the role-facing
-// `supplier_allocations` view (no buyer columns). Writes touch the base
-// `allocations` table, update-only, never selecting from it.
+// `supplier_allocations` view (no buyer columns). Suppliers have no write grant on the base
+// `allocations` table, so every change to a job goes through a supplier_* function.
 import { supabase } from '../../lib/supabase';
 import type { BankMasked, PriceRow, Requirements, StockRow } from './types';
 
@@ -21,7 +21,7 @@ export const getAllocation = (id: string) =>
   supabase.from('supplier_allocations').select(SUPPLIER_ALLOCATION_COLUMNS).eq('id', id).single();
 
 export const respondToAllocation = (id: string, accept: boolean) =>
-  supabase.from('allocations').update({ status: accept ? 'accepted' : 'declined' }).eq('id', id);
+  supabase.rpc('supplier_respond_allocation', { p_allocation_id: id, p_accept: accept });
 
 export const saveAllocationProgress = (
   id: string,
@@ -33,9 +33,9 @@ export const saveAllocationProgress = (
     removal_permit_path: string;
     permit_valid_until: string;
   }>,
-) => supabase.from('allocations').update(patch).eq('id', id);
+) => supabase.rpc('supplier_update_allocation', { p_allocation_id: id, p_patch: patch });
 
-export const markAllocationReady = (id: string) => supabase.from('allocations').update({ status: 'ready' }).eq('id', id);
+export const markAllocationReady = (id: string) => supabase.rpc('supplier_mark_ready', { p_allocation_id: id });
 
 export const listStock = (weekStarts: string[]) =>
   supabase.from('stock').select(STOCK_COLUMNS).in('week_start', weekStarts);
