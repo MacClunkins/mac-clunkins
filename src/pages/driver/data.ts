@@ -43,3 +43,9 @@ export async function saveDriverDocument(profileId: string, kind: string, existi
 // Latest position for a trip that is on the road. The database ignores it unless the trip is picked up.
 export const sendLocation = (tripId: string, lat: number, lng: number) =>
   supabase.rpc('driver_update_location', { p_trip_id: tripId, p_lat: lat, p_lng: lng });
+
+export const recordTemperature = (args: { p_trip_id: string; p_temp_c: number; p_source: 'forecast' | 'measured' }) =>
+  supabase.rpc('driver_record_temperature', args);
+
+/** The admin's heat limit (a public setting). */
+export const getHeatThreshold = () => supabase.from('settings').select('key, value').eq('key', 'heat_warn_c').maybeSingle();

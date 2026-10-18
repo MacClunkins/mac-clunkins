@@ -204,7 +204,7 @@ function DriverPicker({ allocation, detail, heatC, onAct }: { allocation: Alloca
   const trip = detail.trips.find((x) => x.allocation_id === allocation.id);
   const { data, loading, error } = useAdminData(() => loadDriverOptions(allocation.supplier_id), [allocation.supplier_id]);
   const [pick, setPick] = useState('');
-  const hot = (trip?.forecast_temp_c ?? 0) >= heatC;
+  const hot = (trip?.forecast_temp_c ?? 0) > heatC;
   const options = (data ?? []).map((o) => ({ ...o, problems: driverFitProblems({ driver: o.driver, requirements: o.requirements, birds: allocation.quantity, hotDay: hot }) }));
   return (
     <div className="rounded-xl bg-cream p-4">
