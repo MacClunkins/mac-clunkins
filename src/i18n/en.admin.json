@@ -5,7 +5,7 @@
     "nav": {
       "label": "Admin sections",
       "dashboard": "Dashboard", "orders": "Orders", "incidents": "Incidents", "quotes": "Quotes", "schedule": "Schedule", "users": "Users", "cases": "Cases",
-      "payouts": "Payouts", "compliance": "Compliance", "reports": "Reports", "settings": "Settings"
+      "payouts": "Payouts", "compliance": "Compliance", "reports": "Reports", "audit": "Audit log", "settings": "Settings"
     },
     "common": {
       "loading": "Loading...", "loadError": "Couldn't load this page: {message}", "none": "Nothing here yet", "all": "All",
@@ -146,6 +146,21 @@
       "spend": "Spend", "jobs": "Jobs", "collected": "Collected", "trips": "Trips", "delivered": "Delivered", "rating": "Rating",
       "kpi": { "orders": "Orders", "sales": "Sales", "margin": "Margin", "birds": "Birds sold", "aov": "Average order" },
       "section": { "daily": "Revenue and margin by day", "areas": "Chickens by area", "buyers": "Top buyers", "suppliers": "Supplier performance", "drivers": "Driver performance" }
+    },
+    "audit": {
+      "title": "Audit log", "subtitle": "Everything the system recorded: who did what, and what changed. Nothing here needs the database.",
+      "entity": "Area", "search": "Action contains", "apply": "Apply", "none": "Nothing recorded.", "more": "Load older", "system": "System",
+      "openOrder": "Open order", "noDetail": "No details were stored for this entry.", "orderHistory": "Full history",
+      "entities": {"orders": "Orders", "quotes": "Quotes", "allocations": "Supplier jobs", "trips": "Trips", "payments": "Payments", "transfers": "Payouts", "incidents": "Incidents", "settings": "Settings", "areas_served": "Areas", "profiles": "People", "documents": "Documents", "cases": "Cases", "bank_statements": "Bank statements"},
+      "action": {
+        "quote_requested": "Quote requested", "quote_created": "Instant quote created", "quote_priced": "Quote priced by admin",
+        "order_paid": "Order paid", "payment_manual": "Payment recorded by admin", "payment_proof_submitted": "Buyer sent proof of payment",
+        "payout_queued": "Payout queued", "payout_paid_manual": "Payout paid by EFT", "payout_success": "Payout succeeded", "payout_failed": "Payout failed",
+        "allocation_assigned": "Supplier assigned", "allocation_accepted": "Supplier accepted the job", "allocation_declined": "Supplier declined the job", "allocation_ready": "Supplier marked the load ready",
+        "order_scheduled": "Delivery scheduled", "order_rematched": "Supplier changed", "order_short_load": "Short load recorded", "trip_driver_assigned": "Driver assigned",
+        "incident_opened": "Incident opened", "incident_updated": "Incident updated", "admin_correction": "Count corrected by admin", "admin_force_delivery": "Delivery confirmed by admin",
+        "settings_update": "Setting changed", "areas_served_update": "Area changed", "bank_statement_added": "Bank statement filed"
+      }
     },
     "incidents": {
       "title": "Incidents", "subtitle": "Anything that went wrong on a job: reported by a supplier or driver, or noticed by the system. Work each one to a close, with a note.",

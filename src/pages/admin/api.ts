@@ -5,6 +5,7 @@
 import { supabase } from '../../lib/supabase';
 import { isForwardTransition, validateResolution } from './logic/cases';
 import { canRetry } from './logic/payouts';
+import type { AuditRow } from './logic/audit';
 import { defFor, sameValue, validateSetting } from './logic/settings';
 import type {
   AllocationRow, AreaRow, CaseCostOwner, CaseEventRow, CaseResolution, CaseRow, CaseStatus,
@@ -602,6 +603,48 @@ export async function loadDriverParties(client: DbClient = db): Promise<Result<D
     id: d.profile_id, name: d.profile?.business_name || d.profile?.full_name || '', phone: d.profile?.whatsapp_phone ?? null,
     status: d.profile?.status ?? 'unknown', paused: !!d.paused, capacity_birds: d.capacity_birds ?? null, covered: !!d.covered,
   })));
+}
+
+/* ---------------------------------------------------------------- audit log */
+
+
+export interface AuditFilter { entity?: string; search?: string; before?: string; limit?: number }
+
+export async function loadAuditLog(f: AuditFilter = {}, client: DbClient = db): Promise<Result<AuditRow[]>> {
+  let q = client.from('audit_log').select('id, actor_id, action, entity, entity_id, before, after, created_at')
+    .order('created_at', { ascending: false }).limit(f.limit ?? 100);
+  if (f.entity) q = q.eq('entity', f.entity);
+  if (f.search?.trim()) q = q.ilike('action', `%${f.search.trim().replace(/[%_]/g, '')}%`);
+  if (f.before) q = q.lt('created_at', f.before);
+  const r = await q;
+  if (r.error) return fail(r.error);
+  const rows = (r.data ?? []) as AuditRow[];
+  const names = await namesFor(rows.map((x) => x.actor_id), client);
+  return ok(rows.map((x) => ({ ...x, actor: x.actor_id ? names.get(x.actor_id) ?? null : null })));
+}
+
+/** Everything the system recorded about one order: the order, its quote, jobs, trips, payments, payouts, incidents. */
+export async function loadOrderHistory(
+  order: { id: string; quote_id?: string | null },
+  allocationIds: string[], tripIds: string[], paymentIds: string[],
+  client: DbClient = db,
+): Promise<Result<{ audit: AuditRow[]; incidents: { id: string; number: string; title: string; kind: string; status: string; created_at: string }[] }>> {
+  const [tr1, tr2, inc] = await Promise.all([
+    allocationIds.length ? client.from('transfers').select('id').in('allocation_id', allocationIds) : Promise.resolve({ data: [], error: null }),
+    tripIds.length ? client.from('transfers').select('id').in('trip_id', tripIds) : Promise.resolve({ data: [], error: null }),
+    client.from('incidents').select('id, number, title, kind, status, created_at').eq('order_id', order.id),
+  ]);
+  const err = firstError(tr1, tr2);
+  if (err) return fail(err);
+  const transferIds = [...(tr1.data ?? []), ...(tr2.data ?? [])].map((x: { id: string }) => x.id);
+  // Incidents are an extra: if that table is not there (or cannot be read) the rest of the history still shows.
+  const incidents = (inc.error ? [] : inc.data ?? []) as { id: string; number: string; title: string; kind: string; status: string; created_at: string }[];
+  const ids = [order.id, order.quote_id, ...allocationIds, ...tripIds, ...paymentIds, ...transferIds, ...incidents.map((i) => i.id)].filter((x): x is string => !!x);
+  const a = await client.from('audit_log').select('id, actor_id, action, entity, entity_id, before, after, created_at').in('entity_id', ids).order('created_at');
+  if (a.error) return fail(a.error);
+  const rows = (a.data ?? []) as AuditRow[];
+  const names = await namesFor(rows.map((x) => x.actor_id), client);
+  return ok({ audit: rows.map((x) => ({ ...x, actor: x.actor_id ? names.get(x.actor_id) ?? null : null })), incidents });
 }
 
 /* ------------------------------------------------------------------ incidents */
