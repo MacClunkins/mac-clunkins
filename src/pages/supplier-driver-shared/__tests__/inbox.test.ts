@@ -13,7 +13,7 @@ describe('describeNotification', () => {
   it('a ready quote shows the price and opens the quote', () => {
     const d = describeNotification({ template: 'quote_ready', payload: { quote_id: 'q1', total_cents: 5703057 } }, 'buyer');
     expect(d.to).toBe('/quotes/q1');
-    expect(d.text).toMatch(/R57[\s ,.]?030[.,]57/);
+    expect(d.text).toMatch(/R57[\s\u00a0,.]?030[.,]57/);
   });
 
   it('suppliers and drivers go to their own screens', () => {
