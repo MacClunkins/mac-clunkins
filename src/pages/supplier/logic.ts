@@ -103,3 +103,19 @@ export function windowError(w: TimeWindow): 'incomplete' | 'order' | null {
   if (!w.from || !w.to) return 'incomplete';
   return w.to > w.from ? null : 'order';
 }
+
+/**
+ * What a job pays the supplier. Payouts are the agreed price times the birds counted at pickup
+ * (never more than were ordered), so a job shows the full order value until it is collected and the
+ * real payout after.
+ */
+export function jobPayout(job: { supplier_price_cents: number; quantity: number; birds_counted: number | null; status: string }) {
+  const collected = job.status === 'collected' && job.birds_counted !== null;
+  const birds = collected ? Math.min(job.quantity, job.birds_counted ?? 0) : job.quantity;
+  return {
+    cents: job.supplier_price_cents * birds,
+    birds,
+    collected,
+    short: collected && birds < job.quantity,
+  };
+}

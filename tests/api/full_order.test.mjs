@@ -275,3 +275,30 @@ test('pricing a requested quote sends it back: the buyer gets a quote document a
   assert.equal(after.length, 1);
   assert.equal(after[0].amount_cents, q2.total_cents);
 });
+
+test('a short pickup: the supplier is paid for what was collected, the driver cannot deliver more than that', async () => {
+  const quote = await requestQuote(50);
+  const { order, code } = await placeAndPay(quote);
+  const trip = await one(`select t.id from public.trips t join public.allocations a on a.id = t.allocation_id where a.order_id = $1`, [order.id]);
+  const slot = await one(`insert into public.delivery_slots (label, start_time, end_time) values ('Morning', '08:00', '12:00') returning id`);
+  await act(c, ID.admin, `select public.admin_schedule_order($1, current_date + 1, $2)`, [order.id, slot.id]);
+  await act(c, ID.admin, 'select public.admin_assign_driver($1, $2)', [trip.id, ID.driver]);
+
+  await act(c, ID.driver, 'select public.driver_confirm_pickup($1, 40)', [trip.id]);
+  // the supplier is queued for 40 birds, not the 50 ordered
+  const sup = await one(`select amount_cents from public.transfers where party_type = 'supplier'`);
+  assert.equal(sup.amount_cents, 9000 * 40);
+
+  // 50 delivered out of 40 collected is refused, and nothing changes
+  const over = await actTry(c, ID.driver, 'select public.driver_confirm_delivery($1, $2, 50)', [trip.id, code]);
+  assert.match(over.error.message, /delivered_more_than_collected/);
+  assert.equal((await one('select status from public.trips where id = $1', [trip.id])).status, 'picked_up');
+  assert.equal((await sql(`select 1 from public.transfers where party_type = 'driver'`)).length, 0);
+
+  await act(c, ID.driver, 'select public.driver_confirm_delivery($1, $2, 40)', [trip.id, code]);
+  assert.equal((await one('select delivered_count from public.trips where id = $1', [trip.id])).delivered_count, 40);
+  // the short load is on record for the admin
+  const audit = await sql(`select after from public.audit_log where action = 'order.short_load' and entity_id = $1`, [order.id]);
+  assert.equal(audit.length, 1);
+  assert.deepEqual([audit[0].after.ordered, audit[0].after.collected], [50, 40]);
+});
