@@ -11,13 +11,16 @@ import type { ApiError } from './api';
 export const NAV: { to: string; key: string; end?: boolean }[] = [
   { to: '/admin', key: 'dashboard', end: true },
   { to: '/admin/orders', key: 'orders' },
+  { to: '/admin/incidents', key: 'incidents' },
   { to: '/admin/quotes', key: 'quotes' },
   { to: '/admin/schedule', key: 'schedule' },
   { to: '/admin/users', key: 'users' },
   { to: '/admin/cases', key: 'cases' },
   { to: '/admin/payouts', key: 'payouts' },
+  { to: '/admin/money', key: 'money' },
   { to: '/admin/compliance', key: 'compliance' },
   { to: '/admin/reports', key: 'reports' },
+  { to: '/admin/audit', key: 'audit' },
   { to: '/admin/settings', key: 'settings' },
 ];
 

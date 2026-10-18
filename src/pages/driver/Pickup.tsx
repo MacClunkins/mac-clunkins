@@ -18,6 +18,7 @@ import { getOfflineQueue } from './offlineQueue';
 import { confirmPickup, getHeatThreshold, getPickupInfo, getTrip, getTripStops } from './data';
 import { birdsPerCrateLimit, HEAT_THRESHOLD_C, maxBirdsOnLoad, pickupBlockers } from './rules';
 import { looksOffline } from './sync';
+import { friendlyError } from '../supplier-driver-shared/errors';
 import type { DriverTrip, PickupInfo, TripStops } from './types';
 
 export default function DriverPickup() {
@@ -30,6 +31,7 @@ export default function DriverPickup() {
   const [count, setCount] = useState('');
   const [photo, setPhoto] = useState<File | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [shortReason, setShortReason] = useState('');
 
   const i = info.data;
   const stops = useSupabaseQuery<TripStops[]>(() => getTripStops(), [id]);
@@ -41,7 +43,10 @@ export default function DriverPickup() {
   const { limit, hot } = birdsPerCrateLimit({ max_per_crate: i?.max_per_crate ?? null, max_per_crate_hot: i?.max_per_crate_hot ?? null }, forecast, threshold);
   const maxBirds = maxBirdsOnLoad(limit, i?.crates ?? null);
   const permit = permitRemaining(i?.permit_valid_until);
-  const blockers = i
+  const expected = i?.expected_birds ?? null;
+  const isShort = expected != null && Number(count) > 0 && Number(count) < expected;
+  const capacityShort = maxBirds != null && expected != null && maxBirds < expected;
+  const baseBlockers = i
     ? pickupBlockers({
         count: Number(count) || 0,
         maxBirds,
@@ -53,13 +58,14 @@ export default function DriverPickup() {
         permitExpired: permit?.expired ?? true,
       })
     : ['driver.pickup.loading'];
+  const blockers = isShort && !shortReason ? [...baseBlockers, 'driver.pickup.block_short_reason'] : baseBlockers;
 
   async function confirm() {
     if (!profile) return;
     setMsg(null);
     const n = Number(count);
     const queueIt = async () => {
-      await getOfflineQueue().enqueue('pickup', id, { count: n }, photo);
+      await getOfflineQueue().enqueue('pickup', id, { count: n, short_reason: isShort ? shortReason : null }, photo);
       navigate('/driver/trips');
     };
     if (!navigator.onLine) return queueIt();
@@ -69,8 +75,8 @@ export default function DriverPickup() {
       if (!up.path) return looksOffline(up.error ?? '') ? queueIt() : setMsg(up.error);
       photoPath = up.path;
     }
-    const { error } = await confirmPickup({ p_trip_id: id, p_count: n, p_photo_path: photoPath });
-    if (error) return looksOffline(error.message) ? queueIt() : setMsg(error.message);
+    const { error } = await confirmPickup({ p_trip_id: id, p_count: n, p_photo_path: photoPath, p_short_reason: isShort ? shortReason : null });
+    if (error) return looksOffline(error.message) ? queueIt() : setMsg(friendlyError(error.message));
     navigate('/driver/trips');
   }
 
@@ -117,6 +123,13 @@ export default function DriverPickup() {
               </div>
             )}
 
+            {capacityShort && (
+              <div role="alert" data-testid="capacity-warning" className="rounded-2xl bg-chilli/15 p-4 font-body text-chilli">
+                <p className="font-semibold">{t('driver.pickup.capacity_short', { max: maxBirds ?? 0, expected: expected ?? 0 })}</p>
+                <Link to="/driver/help" className="mt-2 inline-block font-semibold underline">{t('driver.pickup.report')}</Link>
+              </div>
+            )}
+
             <Card title={t('driver.pickup.crate_limit')}>
               <div className="grid grid-cols-2 gap-3 text-center">
                 <div className={`rounded-xl p-3 ${!hot ? 'bg-mustard/40 ring-2 ring-mustard' : 'bg-cream'}`}>
@@ -153,6 +166,15 @@ export default function DriverPickup() {
                 onChange={(e) => setCount(e.target.value.replace(/\D/g, ''))}
                 className="min-h-16 w-full rounded-xl border border-ink/20 bg-white px-3 text-center font-heading text-4xl"
               />
+              {isShort && (
+                <label className="mt-3 flex flex-col gap-1 font-body text-sm">
+                  {t('driver.pickup.short_reason')}
+                  <select value={shortReason} onChange={(e) => setShortReason(e.target.value)} aria-label={t('driver.pickup.short_reason')} className="min-h-12 rounded-xl border border-ink/20 bg-white px-3">
+                    <option value="">{t('driver.pickup.short_reason_pick')}</option>
+                    {(['crates_too_few', 'not_enough_birds', 'welfare', 'other'] as const).map((r) => (<option key={r} value={r}>{t(`driver.pickup.reasons.${r}`)}</option>))}
+                  </select>
+                </label>
+              )}
               {blockers.length > 0 && (
                 <ul className="mt-3 list-disc pl-5 font-body text-sm text-chilli">
                   {blockers.map((k) => (<li key={k}>{t(k)}</li>))}
