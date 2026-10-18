@@ -2,7 +2,7 @@
   "buyer": {
     "brand": "McCluckin’s",
     "roleLabel": "Buyer",
-    "nav": {"label": "Buyer menu", "orders": "My orders", "newOrder": "New order", "profile": "Profile", "logout": "Log out"},
+    "nav": {"label": "Buyer menu", "orders": "My orders", "newOrder": "New order", "inbox": "Messages", "profile": "Profile", "logout": "Log out"},
     "birdType": {"broiler": "Broiler", "hardbody": "Hardbody", "indigenous": "Indigenous"},
     "weightBand": {"under_1_5kg": "Under 1.5 kg", "1_5_to_2kg": "1.5 to 2 kg", "2_to_2_5kg": "2 to 2.5 kg", "2_5_to_3kg": "2.5 to 3 kg", "over_3kg": "Over 3 kg"},
     "status": {"placed": "Awaiting payment", "paid": "Paid", "scheduled": "Scheduled", "ready": "Ready for pickup", "on_the_way": "On the way", "delivered": "Delivered", "settled": "Completed", "cancelled": "Cancelled", "refunded": "Refunded"},

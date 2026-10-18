@@ -1,5 +1,6 @@
 import { Route } from 'react-router-dom';
 import { ProtectedRoute } from '../auth/ProtectedRoute';
+import BuyerNotifications from '../pages/buyer/Notifications';
 import type { ReactElement } from 'react';
 import BuyerOrders from '../pages/buyer/Orders';
 import NewOrder from '../pages/buyer/NewOrder';
@@ -35,6 +36,7 @@ export const buyerRoutes = (
     <Route path="/orders/:id/problem" element={guard(<ReportProblem />)} />
     <Route path="/quotes/:id" element={guard(<QuoteReady />)} />
     <Route path="/cases/:id" element={guard(<CaseDetail />)} />
+    <Route path="/inbox" element={guard(<BuyerNotifications />)} />
     <Route path="/profile" element={guard(<Profile />)} />
   </>
 );
