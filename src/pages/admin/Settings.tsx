@@ -12,6 +12,30 @@ import { AdminLayout, LoadState, Pill, SectionTitle, card, errorText, input, use
 
 const LANGS = ['en', 'zu', 'st', 'tn'];
 
+const COMPANY_FIELDS = [
+  'name', 'address', 'email', 'phone', 'registration',
+  'bank_name', 'account_holder', 'account_number', 'branch_code', 'account_type',
+] as const;
+
+type Company = Record<(typeof COMPANY_FIELDS)[number], string>;
+
+/** Turns a template key such as `msg.order_paid` into "Order paid" so no database key is shown. */
+function templateLabel(k: string): string {
+  const words = k.replace(/^msg\./, '').replace(/[._]+/g, ' ').trim();
+  return words ? words.charAt(0).toUpperCase() + words.slice(1) : k;
+}
+
+function keyLabel(k: string): string {
+  const id = `admin.settings.key.${k}`;
+  const label = t(id);
+  return label === id ? templateLabel(k) : label;
+}
+
+function readCompany(v: JsonValue | undefined): Company {
+  const o = v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+  return Object.fromEntries(COMPANY_FIELDS.map((f) => [f, typeof o[f] === 'string' ? (o[f] as string) : ''])) as Company;
+}
+
 function show(v: JsonValue | undefined): string {
   return v === null || v === undefined ? '' : String(v);
 }
@@ -24,11 +48,17 @@ export default function AdminSettings() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [mode, setMode] = useState('manual');
+  const [company, setCompany] = useState<Company>(readCompany(undefined));
   const { ask, dialog } = useConfirm();
   const current: SettingsMap = settings.data ?? {};
 
   useEffect(() => {
-    if (settings.data) setDraft(Object.fromEntries(SETTING_DEFS.map((d) => [d.key, show(settings.data?.[d.key])])));
+    if (settings.data) {
+      setDraft(Object.fromEntries(SETTING_DEFS.map((d) => [d.key, show(settings.data?.[d.key])])));
+      setMode(settings.data.payments_mode === 'paystack' ? 'paystack' : 'manual');
+      setCompany(readCompany(settings.data.company_profile));
+    }
   }, [settings.data]);
 
   async function persist(next: SettingsMap) {
@@ -56,10 +86,32 @@ export default function AdminSettings() {
       body: (
         <div>
           <ul className="mb-2 list-disc pl-5">
-            {keys.map((k) => <li key={k}>{t(`admin.settings.key.${k}`)}: {show(current[k]) || t('admin.settings.notSet')} &rarr; {show(next[k]) || t('admin.settings.notSet')}</li>)}
+            {keys.map((k) => <li key={k}>{keyLabel(k)}: {show(current[k]) || t('admin.settings.notSet')} &rarr; {show(next[k]) || t('admin.settings.notSet')}</li>)}
           </ul>
           <p className="font-semibold">{t('admin.settings.newQuotesOnly')}</p>
         </div>
+      ),
+      confirmLabel: t('admin.settings.save'),
+      run: () => persist(next),
+    });
+  }
+
+  const companyDirty = JSON.stringify(company) !== JSON.stringify(readCompany(current.company_profile));
+  const modeDirty = mode !== (current.payments_mode === 'paystack' ? 'paystack' : 'manual');
+
+  function submitPayments() {
+    const next: SettingsMap = {};
+    if (modeDirty) next.payments_mode = mode;
+    if (companyDirty) next.company_profile = company;
+    setSaved(false);
+    setMsg(null);
+    ask({
+      title: t('admin.settings.confirmTitle'),
+      body: (
+        <ul className="list-disc pl-5">
+          {modeDirty && <li>{t('admin.settings.paymentsMode')}: {t(`admin.settings.mode_${mode}`)}</li>}
+          {companyDirty && <li>{t('admin.settings.company')}</li>}
+        </ul>
       ),
       confirmLabel: t('admin.settings.save'),
       run: () => persist(next),
@@ -72,7 +124,7 @@ export default function AdminSettings() {
 
   const field = (d: SettingDef) => (
     <label key={d.key} className="flex flex-col gap-1 font-body text-sm">
-      <span className="font-medium">{t(`admin.settings.key.${d.key}`)} <span className="font-mono text-xs text-ink/40">{d.key}</span></span>
+      <span className="font-medium">{t(`admin.settings.key.${d.key}`)}</span>
       <span className="flex items-center gap-2">
         <input className={`${input} w-40`} inputMode="decimal" aria-label={t(`admin.settings.key.${d.key}`)} value={draft[d.key] ?? ''} onChange={(e) => setDraft({ ...draft, [d.key]: e.target.value })} />
         <span className="text-ink/50">
@@ -98,6 +150,29 @@ export default function AdminSettings() {
             </section>
           ))}
           <div><Button onClick={submitDefs}>{t('admin.settings.saveAll')}</Button></div>
+
+          <section className={card}>
+            <SectionTitle>{t('admin.settings.payments')}</SectionTitle>
+            <label className="mb-4 flex flex-col gap-1 font-body text-sm">
+              <span className="font-medium">{t('admin.settings.paymentsMode')}</span>
+              <select className={`${input} w-72`} aria-label={t('admin.settings.paymentsMode')} value={mode} onChange={(e) => setMode(e.target.value)}>
+                <option value="manual">{t('admin.settings.mode_manual')}</option>
+                <option value="paystack">{t('admin.settings.mode_paystack')}</option>
+              </select>
+              <span className="text-xs text-ink/50">{t('admin.settings.paymentsModeHelp')}</span>
+            </label>
+            <SectionTitle>{t('admin.settings.company')}</SectionTitle>
+            <p className="mb-3 font-body text-xs text-ink/50">{t('admin.settings.companyHelp')}</p>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {COMPANY_FIELDS.map((f) => (
+                <label key={f} className="flex flex-col gap-1 font-body text-sm">
+                  <span className="font-medium">{t(`admin.settings.company_${f}`)}</span>
+                  <input className={input} aria-label={t(`admin.settings.company_${f}`)} value={company[f]} onChange={(e) => setCompany({ ...company, [f]: e.target.value })} />
+                </label>
+              ))}
+            </div>
+            <div className="mt-4"><Button disabled={!companyDirty && !modeDirty} onClick={submitPayments}>{t('admin.settings.savePayments')}</Button></div>
+          </section>
 
           <section className={card}>
             <SectionTitle>{t('admin.settings.integrations')}</SectionTitle>
@@ -147,7 +222,7 @@ export default function AdminSettings() {
             <SectionTitle>{t('admin.settings.templates')}</SectionTitle>
             {templateKeys.length === 0 ? <p className="font-body text-sm text-ink/60">{t('admin.settings.templatesNone')}</p> : (
               <ul className="flex flex-col gap-4">
-                {templateKeys.map((k) => <TemplateEditor key={k} k={k} value={show(current[k])} onSave={(v) => ask({ title: t('admin.settings.confirmTitle'), body: k, confirmLabel: t('admin.settings.save'), run: () => persist({ [k]: v }) })} />)}
+                {templateKeys.map((k) => <TemplateEditor key={k} k={k} value={show(current[k])} onSave={(v) => ask({ title: t('admin.settings.confirmTitle'), body: templateLabel(k), confirmLabel: t('admin.settings.save'), run: () => persist({ [k]: v }) })} />)}
               </ul>
             )}
           </section>
@@ -173,11 +248,12 @@ function AreaEditor({ area, onSave }: { area: AreaRow; onSave: (after: Pick<Area
 }
 
 function TemplateEditor({ k, value, onSave }: { k: string; value: string; onSave: (v: string) => void }) {
+  const label = templateLabel(k);
   const [text, setText] = useState(value);
   return (
     <li className="flex flex-col gap-1 font-body text-sm">
-      <span className="font-mono text-xs text-ink/50">{k}</span>
-      <textarea className={input} rows={3} aria-label={k} value={text} onChange={(e) => setText(e.target.value)} />
+      <span className="font-medium">{label}</span>
+      <textarea className={input} rows={3} aria-label={label} value={text} onChange={(e) => setText(e.target.value)} />
       <div><Button variant="secondary" disabled={text === value || !text.trim()} onClick={() => onSave(text.trim())}>{t('admin.settings.save')}</Button></div>
     </li>
   );

@@ -18,7 +18,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:api": "vitest run --config vitest.api.config.ts --passWithNoTests",
+    "test:api": "node --test tests/api/*.test.mjs && vitest run --config vitest.api.config.ts --passWithNoTests",
     "test:e2e": "playwright test",
     "test:i18n": "node scripts/i18n-report.mjs --strict"
   },

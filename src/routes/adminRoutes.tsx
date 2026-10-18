@@ -7,6 +7,7 @@ import AdminDashboard from '../pages/admin/Dashboard';
 import AdminOrderDetail from '../pages/admin/OrderDetail';
 import AdminOrders from '../pages/admin/Orders';
 import AdminPayouts from '../pages/admin/Payouts';
+import AdminQuotes from '../pages/admin/Quotes';
 import AdminReports from '../pages/admin/Reports';
 import AdminSchedule from '../pages/admin/Schedule';
 import AdminSettings from '../pages/admin/Settings';
@@ -24,6 +25,7 @@ export const adminRoutes = (
     <Route path="/admin" element={guard(<AdminDashboard />)} />
     <Route path="/admin/orders" element={guard(<AdminOrders />)} />
     <Route path="/admin/orders/:id" element={guard(<AdminOrderDetail />)} />
+    <Route path="/admin/quotes" element={guard(<AdminQuotes />)} />
     <Route path="/admin/schedule" element={guard(<AdminSchedule />)} />
     <Route path="/admin/users" element={guard(<AdminUsers />)} />
     <Route path="/admin/cases" element={guard(<AdminCases />)} />

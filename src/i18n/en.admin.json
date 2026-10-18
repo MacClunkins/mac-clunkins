@@ -4,7 +4,7 @@
     "logout": "Log out",
     "nav": {
       "label": "Admin sections",
-      "dashboard": "Dashboard", "orders": "Orders", "schedule": "Schedule", "users": "Users", "cases": "Cases",
+      "dashboard": "Dashboard", "orders": "Orders", "quotes": "Quotes", "schedule": "Schedule", "users": "Users", "cases": "Cases",
       "payouts": "Payouts", "compliance": "Compliance", "reports": "Reports", "settings": "Settings"
     },
     "common": {
@@ -146,11 +146,24 @@
       "kpi": { "orders": "Orders", "sales": "Sales", "margin": "Margin", "birds": "Birds sold", "aov": "Average order" },
       "section": { "daily": "Revenue and margin by day", "areas": "Chickens by area", "buyers": "Top buyers", "suppliers": "Supplier performance", "drivers": "Driver performance" }
     },
+    "quotes": {
+      "title": "Quotes", "subtitle": "Quote requests from buyers. Price each one by choosing which suppliers fill it. The buyer is then able to see the price and place the order.",
+      "tabOpen": "Needs a price", "tabAll": "All quotes", "none": "No quotes here.", "needsPrice": "Needs a price", "price": "Price this quote",
+      "priceHelp": "Share the {n} birds across suppliers. Supplier prices are only shown here, never to the buyer.",
+      "noSuppliers": "No supplier can fill this quote right now.", "supplier": "Supplier", "pricePerBird": "Price per bird", "distance": "Distance",
+      "stock": "Stock", "birds": "Birds", "otherProvince": "other province", "allocated": "{a} of {n} birds chosen", "send": "Send price to buyer"
+    },
     "settings": {
       "title": "Settings", "subtitle": "Pricing, limits, provinces, languages and messages. Every change is written to the audit log.",
       "newQuotesOnly": "Applies to new quotes only. Existing quotes and orders keep the prices they were made at.",
       "saveAll": "Save changes", "save": "Save", "saved": "Saved.", "noChanges": "Nothing has changed.", "confirmTitle": "Save these changes?", "notSet": "not set", "cents": "cents",
       "timelineHelp": "Leave blank while the delivery timeline is not set. A promise is added to buyer messages once known.",
+      "payments": "Payments and company details", "paymentsMode": "How buyers pay", "savePayments": "Save payment settings",
+      "mode_manual": "Manual: buyer pays by EFT, admin marks it paid", "mode_paystack": "Online: buyer pays by card through Paystack",
+      "paymentsModeHelp": "Online payments only work once the Paystack functions are deployed and the webhook is set.",
+      "company": "Company details", "companyHelp": "Printed on quotes, invoices and receipts. Bank details are shown to buyers on their order so they can pay by EFT.",
+      "company_name": "Company name", "company_address": "Address", "company_email": "Email", "company_phone": "Phone", "company_registration": "Registration number",
+      "company_bank_name": "Bank", "company_account_holder": "Account holder", "company_account_number": "Account number", "company_branch_code": "Branch code", "company_account_type": "Account type",
       "group": { "pricing": "Pricing model", "limits": "Quotes, orders and welfare limits", "timeline": "Delivery timeline" },
       "key": {
         "markup_pct": "Markup on supplier price (%)", "min_margin_cents": "Minimum margin per bird", "service_fee_pct": "Service fee (%)",
