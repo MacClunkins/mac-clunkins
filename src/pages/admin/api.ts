@@ -634,10 +634,11 @@ export async function loadOrderHistory(
     tripIds.length ? client.from('transfers').select('id').in('trip_id', tripIds) : Promise.resolve({ data: [], error: null }),
     client.from('incidents').select('id, number, title, kind, status, created_at').eq('order_id', order.id),
   ]);
-  const err = firstError(tr1, tr2, inc);
+  const err = firstError(tr1, tr2);
   if (err) return fail(err);
   const transferIds = [...(tr1.data ?? []), ...(tr2.data ?? [])].map((x: { id: string }) => x.id);
-  const incidents = (inc.data ?? []) as { id: string; number: string; title: string; kind: string; status: string; created_at: string }[];
+  // Incidents are an extra: if that table is not there (or cannot be read) the rest of the history still shows.
+  const incidents = (inc.error ? [] : inc.data ?? []) as { id: string; number: string; title: string; kind: string; status: string; created_at: string }[];
   const ids = [order.id, order.quote_id, ...allocationIds, ...tripIds, ...paymentIds, ...transferIds, ...incidents.map((i) => i.id)].filter((x): x is string => !!x);
   const a = await client.from('audit_log').select('id, actor_id, action, entity, entity_id, before, after, created_at').in('entity_id', ids).order('created_at');
   if (a.error) return fail(a.error);
