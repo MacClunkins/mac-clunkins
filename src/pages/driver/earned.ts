@@ -23,3 +23,11 @@ export function currentTrip<T extends Pick<DriverTrip, 'status' | 'created_at'>>
   if (picked) return picked;
   return [...open].sort((a, b) => a.created_at.localeCompare(b.created_at))[0] ?? null;
 }
+
+/** Finished trips, newest first: what the driver delivered and what they earned. */
+export function pastTrips<T extends Pick<DriverTrip, 'status' | 'delivered_at' | 'updated_at' | 'created_at'>>(trips: T[]): T[] {
+  const when = (t: T) => t.delivered_at ?? t.updated_at ?? t.created_at;
+  return trips
+    .filter((t) => t.status === 'delivered' || t.status === 'failed')
+    .sort((a, b) => when(b).localeCompare(when(a)));
+}
