@@ -4,14 +4,14 @@ import { Money, StatLine } from './ui';
 
 /** Order money in cents: what the buyer pays, what leaves, and what McCluckin's keeps. */
 export function MoneyBreakdown({ order, breakdown, feeEstimated, incomplete }: {
-  order: { bird_price_cents: number; delivery_fee_cents: number; service_fee_cents: number };
+  order: { delivery_fee_cents: number; service_fee_cents: number };
   breakdown: Breakdown;
   feeEstimated?: boolean;
   incomplete?: boolean;
 }) {
   return (
     <div>
-      <StatLine label={t('admin.money.birds')}><Money cents={order.bird_price_cents} /></StatLine>
+      <StatLine label={t('admin.money.birds')}><Money cents={breakdown.buyerPaysCents - order.delivery_fee_cents - order.service_fee_cents} /></StatLine>
       <StatLine label={t('admin.money.delivery')}><Money cents={order.delivery_fee_cents} /></StatLine>
       <StatLine label={t('admin.money.serviceFee')}><Money cents={order.service_fee_cents} /></StatLine>
       <StatLine label={t('admin.money.buyerPays')} strong><Money cents={breakdown.buyerPaysCents} /></StatLine>
