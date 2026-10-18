@@ -169,8 +169,7 @@
         "no_price": "Hi {name}, please open McCluckin's, go to Prices and set your price per bird for this bird type and weight band.",
         "flu_zone": "Hi {name}, your farm is in a bird flu zone. Please upload your state vet movement permit under Get approved.",
         "docs": "Hi {name}, some of your compliance documents are missing, rejected or expired. Please check Get approved and upload them.",
-        "stock": "Hi {name}, please update your available birds for this week under Stock so we can offer you this order.",
-        "no_driver": ""
+        "stock": "Hi {name}, please update your available birds for this week under Stock so we can offer you this order."
       },
       "noneEligible": "No supplier can fill this quote right now. The reason for each supplier is listed below.",
       "reason": {
