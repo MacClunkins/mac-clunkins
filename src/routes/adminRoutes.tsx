@@ -4,6 +4,7 @@ import { ProtectedRoute } from '../auth/ProtectedRoute';
 import AdminCases from '../pages/admin/Cases';
 import AdminCompliance from '../pages/admin/Compliance';
 import AdminDashboard from '../pages/admin/Dashboard';
+import AdminIncidents from '../pages/admin/Incidents';
 import AdminOrderDetail from '../pages/admin/OrderDetail';
 import AdminOrders from '../pages/admin/Orders';
 import AdminPayouts from '../pages/admin/Payouts';
@@ -26,6 +27,7 @@ export const adminRoutes = (
     <Route path="/admin/orders" element={guard(<AdminOrders />)} />
     <Route path="/admin/orders/:id" element={guard(<AdminOrderDetail />)} />
     <Route path="/admin/quotes" element={guard(<AdminQuotes />)} />
+    <Route path="/admin/incidents" element={guard(<AdminIncidents />)} />
     <Route path="/admin/schedule" element={guard(<AdminSchedule />)} />
     <Route path="/admin/users" element={guard(<AdminUsers />)} />
     <Route path="/admin/cases" element={guard(<AdminCases />)} />
