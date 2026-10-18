@@ -4,8 +4,8 @@
     "logout": "Log out",
     "nav": {
       "label": "Admin sections",
-      "dashboard": "Dashboard", "orders": "Orders", "quotes": "Quotes", "schedule": "Schedule", "users": "Users", "cases": "Cases",
-      "payouts": "Payouts", "compliance": "Compliance", "reports": "Reports", "settings": "Settings"
+      "dashboard": "Dashboard", "orders": "Orders", "incidents": "Incidents", "quotes": "Quotes", "schedule": "Schedule", "users": "Users", "cases": "Cases",
+      "payouts": "Payouts", "money": "Money check", "compliance": "Compliance", "reports": "Reports", "audit": "Audit log", "settings": "Settings"
     },
     "common": {
       "loading": "Loading...", "loadError": "Couldn't load this page: {message}", "none": "Nothing here yet", "all": "All",
@@ -129,7 +129,8 @@
       "timeline": "Timeline", "visibleToBuyer": "Visible to buyer", "internal": "Internal note", "reply": "Write a reply or note", "send": "Add to timeline"
     },
     "payouts": {
-      "title": "Payouts", "subtitle": "Paystack transfers to suppliers and drivers.", "emptyTitle": "No transfers", "retry": "Retry", "retryTitle": "Retry this transfer?",
+      "title": "Payouts", "subtitle": "Paystack transfers to suppliers and drivers.", "emptyTitle": "No transfers", "retry": "Retry", "paidByEft": "Paid by EFT", "paidTitle": "Mark the payout to {name} as paid", "paidBody": "Pay them outside the app, then record it here. Amount:", "bankReference": "Bank reference", "proof": "Proof of payment (slip or screenshot)", "proofRequired": "Attach the proof of payment first.", "markPaid": "Mark as paid", "paidNote": "The supplier or driver can open this proof from their own payouts page.",
+      "statements": "Bank statements", "statementsHelp": "File each bank statement so every payment, payout and bank fee can be traced to a document.", "statementFile": "Statement file", "periodFrom": "From", "periodTo": "To", "statementUpload": "Upload statement", "retryTitle": "Retry this transfer?",
       "retryBody": "Paystack will try to pay {name} again:", "bankFile": "Bank file (CSV)", "bankNote": "Bank file lists queued and failed transfers as a fallback if Paystack cannot pay them.",
       "col": { "party": "Payee", "type": "Type", "amount": "Amount", "status": "Status", "code": "Transfer code", "reason": "Failure reason", "date": "Created" }
     },
@@ -145,6 +146,52 @@
       "spend": "Spend", "jobs": "Jobs", "collected": "Collected", "trips": "Trips", "delivered": "Delivered", "rating": "Rating",
       "kpi": { "orders": "Orders", "sales": "Sales", "margin": "Margin", "birds": "Birds sold", "aov": "Average order" },
       "section": { "daily": "Revenue and margin by day", "areas": "Chickens by area", "buyers": "Top buyers", "suppliers": "Supplier performance", "drivers": "Driver performance" }
+    },
+    "moneyCheck": {
+      "title": "Money check", "subtitle": "For each order: what the buyer paid, what the supplier and driver are paid, and what McCluckin's keeps. Anything that does not add up is flagged here.",
+      "checked": "Orders checked", "flagged": "Need a look", "paid": "Paid by buyers", "margin": "Kept by McCluckin's", "onlyFlagged": "Only show orders that need a look",
+      "allGood": "Every order adds up.", "none": "No orders yet.", "buyerPaid": "Buyer paid", "supplier": "Supplier paid / due", "driver": "Driver paid / due", "kept": "McCluckin's keeps",
+      "flag": {"negative_margin": "Losing money", "margin_high": "Keeping a lot", "short_load": "Short load", "supplier_mismatch": "Supplier payout is off", "driver_mismatch": "Driver payout is off", "missing_supplier_payout": "No supplier payout", "unpaid_delivered": "Delivered but not paid", "payout_before_payment": "Paid out before payment"},
+      "explain": {
+        "negative_margin": "After the supplier, the driver and bank fees, this order lost money.",
+        "margin_high": "McCluckin's is keeping far more than a normal order. A supplier or driver may have been underpaid.",
+        "short_load": "Fewer birds were collected than ordered. The supplier is paid for the birds collected, so check the count and the buyer's order.",
+        "supplier_mismatch": "The supplier payout is not the agreed price times the birds collected.",
+        "driver_mismatch": "The driver payout is not the driver's share of the delivery fee.",
+        "missing_supplier_payout": "The birds were collected but no supplier payout was queued.",
+        "unpaid_delivered": "The order is delivered but less than the full amount was paid.",
+        "payout_before_payment": "A payout was queued before the buyer's payment was recorded."
+      },
+      "note": "Worked out from the order, jobs, trips, payments and payouts as they are now. Bank fees on payouts are counted once they are recorded with the proof of payment."
+    },
+    "audit": {
+      "title": "Audit log", "subtitle": "Everything the system recorded: who did what, and what changed. Nothing here needs the database.",
+      "entity": "Area", "search": "Action contains", "apply": "Apply", "none": "Nothing recorded.", "more": "Load older", "system": "System",
+      "openOrder": "Open order", "noDetail": "No details were stored for this entry.", "orderHistory": "Full history",
+      "entities": {"orders": "Orders", "quotes": "Quotes", "allocations": "Supplier jobs", "trips": "Trips", "payments": "Payments", "transfers": "Payouts", "incidents": "Incidents", "settings": "Settings", "areas_served": "Areas", "profiles": "People", "documents": "Documents", "cases": "Cases", "bank_statements": "Bank statements"},
+      "action": {
+        "quote_requested": "Quote requested", "quote_created": "Instant quote created", "quote_priced": "Quote priced by admin",
+        "order_paid": "Order paid", "payment_manual": "Payment recorded by admin", "payment_proof_submitted": "Buyer sent proof of payment",
+        "payout_queued": "Payout queued", "payout_paid_manual": "Payout paid by EFT", "payout_success": "Payout succeeded", "payout_failed": "Payout failed",
+        "allocation_assigned": "Supplier assigned", "allocation_accepted": "Supplier accepted the job", "allocation_declined": "Supplier declined the job", "allocation_ready": "Supplier marked the load ready",
+        "order_scheduled": "Delivery scheduled", "order_rematched": "Supplier changed", "order_short_load": "Short load recorded", "trip_driver_assigned": "Driver assigned",
+        "incident_opened": "Incident opened", "incident_updated": "Incident updated", "admin_correction": "Count corrected by admin", "admin_force_delivery": "Delivery confirmed by admin",
+        "settings_update": "Setting changed", "areas_served_update": "Area changed", "bank_statement_added": "Bank statement filed"
+      }
+    },
+    "incidents": {
+      "title": "Incidents", "subtitle": "Anything that went wrong on a job: reported by a supplier or driver, or noticed by the system. Work each one to a close, with a note.",
+      "tabOpen": "Open", "tabReview": "Being looked at", "tabClosed": "Closed", "none": "Nothing here.", "bySystem": "Noticed by the system",
+      "severity": {"info": "Info", "warn": "Needs a look", "critical": "Urgent"},
+      "status": {"open": "Open", "in_review": "Being looked at", "resolved": "Resolved", "dismissed": "Dismissed"},
+      "kind": {"short_load": "Short load", "crate_capacity": "Crate capacity", "count_mismatch": "Counts disagree", "count_correction": "Count correction", "delivery_override": "Delivery confirmed by hand", "vehicle": "Vehicle", "access": "Access", "payout_question": "Payout question", "other": "Other"},
+      "data": {"ordered": "Birds ordered", "collected": "Birds collected", "supplier_count": "Supplier counted", "driver_count": "Driver counted", "crates": "Crates", "per_crate": "Birds per crate", "reason": "Reason given", "delivered": "Birds delivered"},
+      "openOrder": "Open order {number}", "resolution": "How it was closed", "history": "History", "noEvents": "No notes yet.", "shared": "shared with the reporter",
+      "note": "Note", "share": "Share this note with the person who reported it", "startReview": "Start looking at it", "resolve": "Resolve", "dismiss": "Dismiss", "reopen": "Reopen", "addNote": "Add note only",
+      "fixes": "Fix the record", "reason": "Reason (kept in the audit log)", "newCount": "Correct pickup count", "correct": "Correct count",
+      "correctTitle": "Correct the pickup count?", "correctBody": "The pickup count becomes {count} and the supplier payout follows it. Reason: {reason}",
+      "force": "Confirm delivery by hand", "forceTitle": "Confirm this delivery without the buyer's code?", "forceBody": "The order is marked delivered and the driver payout is queued. This is recorded as an incident. Reason: {reason}",
+      "fixesHelp": "A count can only be corrected before the supplier payout is sent. Every fix is written to the audit log."
     },
     "quotes": {
       "title": "Quotes", "subtitle": "Quote requests from buyers. Price each one by choosing which suppliers fill it. The buyer is then able to see the price and place the order.",
@@ -217,7 +264,7 @@
         "note": "Note",
         "markPaid": "Mark as paid",
         "markPaidNote": "Use this once the full amount has reached the bank account. It issues the receipt and releases the order for scheduling.",
-        "notPayable": "This order is not awaiting payment.",
+        "notPayable": "This order is not awaiting payment.", "bankFee": "Bank fee on this payment (R, optional)", "bankFeeHelp": "What the bank charged to receive it. Leave empty if there was no charge.", "feeInvalid": "Enter the fee in rand, for example 12.50.", "buyerProofs": "Proof of payment from the buyer", "noProofs": "The buyer has not sent a slip yet.", "viewProof": "View",
         "download": "Download PDF",
         "methods": {
             "eft": "EFT",

@@ -10,6 +10,7 @@ export function DriverNav() {
         { to: '/driver/trips', label: t('driver.nav.trips') },
         { to: '/driver/earnings', label: t('driver.nav.earnings') },
         { to: '/driver/onboarding', label: t('driver.nav.onboarding') },
+        { to: '/driver/help', label: t('driver.nav.help') },
         { to: '/driver/inbox', label: `${t('driver.nav.inbox')}${unread > 0 ? ` (${unread})` : ''}` },
       ]}
     />

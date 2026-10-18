@@ -16,7 +16,7 @@ export const getTrip = (id: string) => supabase.from('driver_trips').select(DRIV
 // BACKEND DEPENDENCY: these RPCs are specified in the PR description; none exist yet.
 export const getTripStops = () => supabase.rpc('driver_trip_stops');
 export const getPickupInfo = (tripId: string) => supabase.rpc('driver_pickup_info', { p_trip_id: tripId });
-export const confirmPickup = (args: { p_trip_id: string; p_count: number; p_photo_path: string | null }) =>
+export const confirmPickup = (args: { p_trip_id: string; p_count: number; p_photo_path: string | null; p_short_reason?: string | null }) =>
   supabase.rpc('driver_confirm_pickup', args);
 export const confirmDelivery = (args: { p_trip_id: string; p_code: string; p_count: number; p_photo_path: string | null }) =>
   supabase.rpc('driver_confirm_delivery', args);
@@ -43,3 +43,9 @@ export async function saveDriverDocument(profileId: string, kind: string, existi
 // Latest position for a trip that is on the road. The database ignores it unless the trip is picked up.
 export const sendLocation = (tripId: string, lat: number, lng: number) =>
   supabase.rpc('driver_update_location', { p_trip_id: tripId, p_lat: lat, p_lng: lng });
+
+export const recordTemperature = (args: { p_trip_id: string; p_temp_c: number; p_source: 'forecast' | 'measured' }) =>
+  supabase.rpc('driver_record_temperature', args);
+
+/** The admin's heat limit (a public setting). */
+export const getHeatThreshold = () => supabase.from('settings').select('key, value').eq('key', 'heat_warn_c').maybeSingle();

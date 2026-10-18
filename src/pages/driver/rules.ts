@@ -3,8 +3,8 @@ import type { DriverVehicle, SupplierRequirementSummary } from './types';
 /** Heat warning triggers when the forecast is strictly above this. */
 export const HEAT_THRESHOLD_C = 30;
 
-export function isHeatWarning(forecastC: number | null | undefined): boolean {
-  return typeof forecastC === 'number' && forecastC > HEAT_THRESHOLD_C;
+export function isHeatWarning(forecastC: number | null | undefined, thresholdC: number = HEAT_THRESHOLD_C): boolean {
+  return typeof forecastC === 'number' && forecastC > thresholdC;
 }
 
 export interface CrateRule {
@@ -13,8 +13,8 @@ export interface CrateRule {
 }
 
 /** Normal vs hot limit. A hot day with no hot-specific limit falls back to the normal limit. */
-export function birdsPerCrateLimit(rule: CrateRule, forecastC: number | null | undefined): { limit: number | null; hot: boolean } {
-  const hot = isHeatWarning(forecastC);
+export function birdsPerCrateLimit(rule: CrateRule, forecastC: number | null | undefined, thresholdC: number = HEAT_THRESHOLD_C): { limit: number | null; hot: boolean } {
+  const hot = isHeatWarning(forecastC, thresholdC);
   const limit = hot ? rule.max_per_crate_hot ?? rule.max_per_crate : rule.max_per_crate;
   return { limit: limit ?? null, hot };
 }
@@ -62,3 +62,22 @@ export function navigateUrl(lat: number | null, lng: number | null, address: str
 }
 
 export const isValidDeliveryCode = (s: string) => /^\d{4}$/.test(s);
+
+/** A thermometer reading typed by the driver: "31", "31.5" or "31,5", between -10 and 55. Anything else is null. */
+export function parseTemperature(text: string): number | null {
+  const s = text.trim().replace(',', '.');
+  if (!/^-?\d{1,2}(\.\d)?$/.test(s)) return null;
+  const n = Number(s);
+  return n >= -10 && n <= 55 ? n : null;
+}
+
+/** Open-Meteo needs no key. */
+export function forecastUrl(lat: number, lng: number): string {
+  return `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lng.toFixed(4)}&current=temperature_2m&timezone=auto`;
+}
+
+/** The current temperature from an Open-Meteo reply, or null if the reply is not what we expect. */
+export function currentTempFrom(json: unknown): number | null {
+  const v = (json as { current?: { temperature_2m?: unknown } } | null)?.current?.temperature_2m;
+  return typeof v === 'number' && Number.isFinite(v) && v >= -10 && v <= 55 ? Math.round(v * 10) / 10 : null;
+}

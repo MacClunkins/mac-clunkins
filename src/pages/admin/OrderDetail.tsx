@@ -13,6 +13,7 @@ import { formatJourney, isEligible, rankCandidates } from './logic/matching';
 import { driverShareCents, evaluateRematch } from './logic/money';
 import { breakdownInput, orderMoney } from './logic/orderMoney';
 import { MoneyBreakdown } from './MoneyBreakdown';
+import { OrderHistory } from './OrderHistory';
 import { RecordPayment } from './RecordPayment';
 import type { AllocationRow, MatchCandidate } from './types';
 import { t } from './i18n';
@@ -92,6 +93,7 @@ function Body({ detail, reload }: { detail: Detail; reload: () => void }) {
             </ol>
           )}
         </section>
+        <OrderHistory order={order} allocations={allocations} trips={trips} payments={payments} events={events} />
       </div>
       {dialog}
     </div>
@@ -204,7 +206,7 @@ function DriverPicker({ allocation, detail, heatC, onAct }: { allocation: Alloca
   const trip = detail.trips.find((x) => x.allocation_id === allocation.id);
   const { data, loading, error } = useAdminData(() => loadDriverOptions(allocation.supplier_id), [allocation.supplier_id]);
   const [pick, setPick] = useState('');
-  const hot = (trip?.forecast_temp_c ?? 0) >= heatC;
+  const hot = (trip?.forecast_temp_c ?? 0) > heatC;
   const options = (data ?? []).map((o) => ({ ...o, problems: driverFitProblems({ driver: o.driver, requirements: o.requirements, birds: allocation.quantity, hotDay: hot }) }));
   return (
     <div className="rounded-xl bg-cream p-4">
