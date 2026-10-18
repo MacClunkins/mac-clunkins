@@ -5,7 +5,7 @@
     "nav": {
       "label": "Admin sections",
       "dashboard": "Dashboard", "orders": "Orders", "incidents": "Incidents", "quotes": "Quotes", "schedule": "Schedule", "users": "Users", "cases": "Cases",
-      "payouts": "Payouts", "compliance": "Compliance", "reports": "Reports", "audit": "Audit log", "settings": "Settings"
+      "payouts": "Payouts", "money": "Money check", "compliance": "Compliance", "reports": "Reports", "audit": "Audit log", "settings": "Settings"
     },
     "common": {
       "loading": "Loading...", "loadError": "Couldn't load this page: {message}", "none": "Nothing here yet", "all": "All",
@@ -146,6 +146,23 @@
       "spend": "Spend", "jobs": "Jobs", "collected": "Collected", "trips": "Trips", "delivered": "Delivered", "rating": "Rating",
       "kpi": { "orders": "Orders", "sales": "Sales", "margin": "Margin", "birds": "Birds sold", "aov": "Average order" },
       "section": { "daily": "Revenue and margin by day", "areas": "Chickens by area", "buyers": "Top buyers", "suppliers": "Supplier performance", "drivers": "Driver performance" }
+    },
+    "moneyCheck": {
+      "title": "Money check", "subtitle": "For each order: what the buyer paid, what the supplier and driver are paid, and what McCluckin's keeps. Anything that does not add up is flagged here.",
+      "checked": "Orders checked", "flagged": "Need a look", "paid": "Paid by buyers", "margin": "Kept by McCluckin's", "onlyFlagged": "Only show orders that need a look",
+      "allGood": "Every order adds up.", "none": "No orders yet.", "buyerPaid": "Buyer paid", "supplier": "Supplier paid / due", "driver": "Driver paid / due", "kept": "McCluckin's keeps",
+      "flag": {"negative_margin": "Losing money", "margin_high": "Keeping a lot", "short_load": "Short load", "supplier_mismatch": "Supplier payout is off", "driver_mismatch": "Driver payout is off", "missing_supplier_payout": "No supplier payout", "unpaid_delivered": "Delivered but not paid", "payout_before_payment": "Paid out before payment"},
+      "explain": {
+        "negative_margin": "After the supplier, the driver and bank fees, this order lost money.",
+        "margin_high": "McCluckin's is keeping far more than a normal order. A supplier or driver may have been underpaid.",
+        "short_load": "Fewer birds were collected than ordered. The supplier is paid for the birds collected, so check the count and the buyer's order.",
+        "supplier_mismatch": "The supplier payout is not the agreed price times the birds collected.",
+        "driver_mismatch": "The driver payout is not the driver's share of the delivery fee.",
+        "missing_supplier_payout": "The birds were collected but no supplier payout was queued.",
+        "unpaid_delivered": "The order is delivered but less than the full amount was paid.",
+        "payout_before_payment": "A payout was queued before the buyer's payment was recorded."
+      },
+      "note": "Worked out from the order, jobs, trips, payments and payouts as they are now. Bank fees on payouts are counted once they are recorded with the proof of payment."
     },
     "audit": {
       "title": "Audit log", "subtitle": "Everything the system recorded: who did what, and what changed. Nothing here needs the database.",
