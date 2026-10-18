@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Route } from 'react-router-dom';
 import { ProtectedRoute } from '../auth/ProtectedRoute';
+import AdminAuditLog from '../pages/admin/AuditLog';
 import AdminCases from '../pages/admin/Cases';
 import AdminCompliance from '../pages/admin/Compliance';
 import AdminDashboard from '../pages/admin/Dashboard';
@@ -32,6 +33,7 @@ export const adminRoutes = (
     <Route path="/admin/payouts" element={guard(<AdminPayouts />)} />
     <Route path="/admin/compliance" element={guard(<AdminCompliance />)} />
     <Route path="/admin/reports" element={guard(<AdminReports />)} />
+    <Route path="/admin/audit" element={guard(<AdminAuditLog />)} />
     <Route path="/admin/settings" element={guard(<AdminSettings />)} />
   </>
 );

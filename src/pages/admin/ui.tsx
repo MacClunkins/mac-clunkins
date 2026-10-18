@@ -18,6 +18,7 @@ export const NAV: { to: string; key: string; end?: boolean }[] = [
   { to: '/admin/payouts', key: 'payouts' },
   { to: '/admin/compliance', key: 'compliance' },
   { to: '/admin/reports', key: 'reports' },
+  { to: '/admin/audit', key: 'audit' },
   { to: '/admin/settings', key: 'settings' },
 ];
 
