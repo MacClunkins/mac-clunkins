@@ -43,6 +43,11 @@ describe('quote helpers', () => {
   it('formats the countdown', () => {
     expect(formatCountdown(30 * 60_000)).toBe('30:00');
     expect(formatCountdown(61_000)).toBe('01:01');
+    // A priced request is held for a day: show hours instead of 1439 minutes.
+    expect(formatCountdown(24 * 3_600_000)).toBe('24:00:00');
+    expect(formatCountdown(3_600_000 + 5_000)).toBe('1:00:05');
+    expect(formatCountdown(59 * 60_000 + 59_000)).toBe('59:59');
+    expect(formatCountdown(-5)).toBe('00:00');
     expect(remainingMs('2026-01-01T00:00:00Z', Date.parse('2027-01-01'))).toBe(0);
   });
   it('reconciles the birds line whether the stored price is a line total or per bird', () => {
