@@ -65,7 +65,7 @@ test('minimum order: global (10) is enforced; a supplier minimum excludes it fro
   await mkSupplier(c, ID.s4, { lon: 28.32, lat: -26.1885, province: 'GP', stock: 800, price: 9000, minOrder: 30 });
   const r = await quote(ID.buyer, ID.addrSoweto, 20);              // s4 would need 30 -> s1 serves it
   assert.equal(r[0].r.kind, 'instant');
-  const [{ s }] = await sql('select matched_supplier_id as s from public.quotes where id = $1', [r[0].r.quote_id]);
+  const [{ s }] = await sql('select matched_supplier_id as s from public.quote_costs where quote_id = $1', [r[0].r.quote_id]);
   assert.equal(s, ID.s1);
 });
 
@@ -73,7 +73,7 @@ test('instant quote: priced from settings, held 30 minutes, stock reserved, noth
   const [{ r }] = await quote(ID.buyer, ID.addrSoweto, 50);
   assert.equal(r.kind, 'instant');
   assert.equal(r.status, 'open');
-  const [row] = await sql('select * from public.quotes where id = $1', [r.quote_id]);
+  const [row] = await sql('select q.*, qc.matched_supplier_id, qc.distance_km, qc.breakdown from public.quotes q join public.quote_costs qc on qc.quote_id = q.id where q.id = $1', [r.quote_id]);
   assert.equal(row.matched_supplier_id, ID.s4);                        // best-ranked
   const expected = calculateQuoteBreakdown(SETTINGS, [{ price_cents: 9000, birds: 50, distance_km: Number(row.distance_km) }]);
   assert.equal(r.total_cents, expected.total_cents);
@@ -131,7 +131,7 @@ test('orders over one vehicle are split across allocations (one trip each)', { s
   assert.equal(p3, null);
   // the priced quote bills one delivery fee per vehicle
   const [{ r }] = await quote(ID.buyer, ID.addrSoweto, 200);
-  const [row] = await sql('select breakdown from public.quotes where id = $1', [r.quote_id]);
+  const [row] = await sql('select breakdown from public.quote_costs where quote_id = $1', [r.quote_id]);
   assert.equal(row.breakdown.allocations.length, 3);
 });
 
@@ -161,8 +161,11 @@ test('privacy: buyers cannot read breakdown, supplier fields or call internal ma
   const [{ r }] = await quote(ID.buyer, ID.addrSoweto, 50);
   for (const col of ['breakdown', 'matched_supplier_id', 'supplier_price_cents', 'distance_km']) {
     const res = await actTry(c, ID.buyer, `select ${col} from public.quotes where id = $1`, [r.quote_id]);
-    assert.equal(res.error?.code, '42501', `${col} must be unreadable`);
+    assert.equal(res.error?.code, '42703', `${col} must not exist on quotes`);
   }
+  // and the cost table that now holds them returns nothing to a buyer
+  const costs = await act(c, ID.buyer, 'select * from public.quote_costs');
+  assert.equal(costs.length, 0);
   const own = await actTry(c, ID.buyer, 'select total_cents from public.quotes where id = $1', [r.quote_id]);
   assert.equal(own.rows.length, 1);
   for (const call of [

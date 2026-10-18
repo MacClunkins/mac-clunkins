@@ -6,7 +6,7 @@
 import { test, before, after, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  connect, asRole, assertNoData, assertColumnUnreachable,
+  connect, asRole, assertNoData, assertColumnUnreachable, assertColumnAbsent,
   USERS, FIXTURES, ALL_TABLES, PUBLIC_TABLES,
 } from './helpers.mjs';
 
@@ -91,7 +91,7 @@ describe('2. a supplier cannot reach buyer-facing prices', () => {
 
   test('the delivery fee is not selectable from trips', async () => {
     await asRole(db, USERS.supplier, async ({ tryQ }) => {
-      await assertColumnUnreachable(tryQ, 'trips', 'delivery_fee_cents', 'supplier');
+      await assertColumnAbsent(tryQ, 'trips', 'delivery_fee_cents', 'supplier');
     });
   });
 
@@ -149,9 +149,9 @@ describe('3. a buyer cannot reach suppliers', () => {
   test('the supplier price on their own quote is not selectable', async () => {
     await asRole(db, USERS.buyer, async ({ tryQ, q }) => {
       // Column-level grant: these three columns do not exist for `authenticated`.
-      await assertColumnUnreachable(tryQ, 'quotes', 'supplier_price_cents', 'buyer');
-      await assertColumnUnreachable(tryQ, 'quotes', 'matched_supplier_id', 'buyer');
-      await assertColumnUnreachable(tryQ, 'quotes', 'distance_km', 'buyer');
+      await assertColumnAbsent(tryQ, 'quotes', 'supplier_price_cents', 'buyer');
+      await assertColumnAbsent(tryQ, 'quotes', 'matched_supplier_id', 'buyer');
+      await assertColumnAbsent(tryQ, 'quotes', 'distance_km', 'buyer');
       // The rest of their own quote is theirs to read.
       const rows = await q('select id, total_cents from public.buyer_quotes');
       assert.equal(rows.length, 1);
@@ -283,9 +283,9 @@ describe('6. a driver sees no price but their own fee', () => {
 
   test('the full delivery fee is not a selectable column at all', async () => {
     await asRole(db, USERS.driver, async ({ tryQ }) => {
-      await assertColumnUnreachable(tryQ, 'trips', 'delivery_fee_cents', 'driver');
-      await assertColumnUnreachable(tryQ, 'quotes', 'supplier_price_cents', 'driver');
-      await assertColumnUnreachable(tryQ, 'allocations', 'distance_km', 'driver');
+      await assertColumnAbsent(tryQ, 'trips', 'delivery_fee_cents', 'driver');
+      await assertColumnAbsent(tryQ, 'quotes', 'supplier_price_cents', 'driver');
+      await assertColumnAbsent(tryQ, 'allocations', 'distance_km', 'driver');
     });
   });
 
@@ -390,7 +390,7 @@ describe('8. anonymous reads only the public reference data', () => {
     });
   });
 
-  test('every one of the other 23 tables yields nothing', async () => {
+  test('every one of the other 26 tables yields nothing', async () => {
     const outcomes = {};
     await asRole(db, null, async ({ tryQ }) => {
       for (const table of ALL_TABLES) {
@@ -398,7 +398,7 @@ describe('8. anonymous reads only the public reference data', () => {
         outcomes[table] = await assertNoData(tryQ, `select * from public.${table}`, [], `anon -> ${table}`);
       }
     });
-    assert.equal(Object.keys(outcomes).length, 23, 'all 23 non-public tables must be checked');
+    assert.equal(Object.keys(outcomes).length, 26, 'all 26 non-public tables must be checked');
   });
 
   test('anonymous cannot create a profile or write anything', async () => {
@@ -441,9 +441,9 @@ describe('9. an admin reads everything', () => {
     // supplier prices from a buyer necessarily hides them from an admin too. The admin
     // route is the owner-privileged view, guarded by is_admin().
     await asRole(db, USERS.admin, async ({ tryQ }) => {
-      await assertColumnUnreachable(tryQ, 'allocations', 'distance_km', 'admin (base table)');
-      await assertColumnUnreachable(tryQ, 'trips', 'delivery_fee_cents', 'admin (base table)');
-      await assertColumnUnreachable(tryQ, 'quotes', 'supplier_price_cents', 'admin (base table)');
+      await assertColumnAbsent(tryQ, 'allocations', 'distance_km', 'admin (base table)');
+      await assertColumnAbsent(tryQ, 'trips', 'delivery_fee_cents', 'admin (base table)');
+      await assertColumnAbsent(tryQ, 'quotes', 'supplier_price_cents', 'admin (base table)');
       await assertColumnUnreachable(tryQ, 'settings', 'updated_by', 'admin (base table)');
     });
   });
@@ -463,6 +463,19 @@ describe('9. an admin reads everything', () => {
       const [alloc] = await q('select distance_km from public.admin_allocations');
       assert.equal(Number(alloc.distance_km), 38);
     });
+  });
+
+  test('the cost tables return rows to an admin and nothing to a buyer, supplier or driver', async () => {
+    for (const t of ['quote_costs', 'allocation_costs', 'trip_costs']) {
+      await asRole(db, USERS.admin, async ({ q }) => {
+        assert.ok((await q(`select * from public.${t}`)).length > 0, `admin sees ${t}`);
+      });
+      for (const who of ['buyer', 'supplier', 'driver']) {
+        await asRole(db, USERS[who], async ({ tryQ }) => {
+          await assertNoData(tryQ, `select * from public.${t}`, [], `${who} -> ${t}`);
+        });
+      }
+    }
   });
 
   test('the admin-only tables are readable by an admin and no one else', async () => {
