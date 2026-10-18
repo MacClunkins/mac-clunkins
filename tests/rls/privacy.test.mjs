@@ -375,7 +375,7 @@ describe('8. anonymous reads only the public reference data', () => {
     await asRole(db, null, async ({ q, tryQ }) => {
       const keys = (await q('select key from public.settings order by key')).map((r) => r.key);
       assert.deepEqual(keys, [
-        'delivery_timeline', 'issue_window_hours', 'min_order', 'payments_mode',
+        'delivery_timeline', 'heat_warn_c', 'issue_window_hours', 'min_order', 'payments_mode',
         'privacy_notice_effective_date', 'quote_hold_minutes',
         'rfq_max_km', 'rfq_min_birds', 'rfq_quote_hours', 'support_phone', 'terms_effective_date', 'unpaid_cancel_hours',
       ]);

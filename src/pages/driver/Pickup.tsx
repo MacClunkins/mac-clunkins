@@ -10,15 +10,16 @@ import { Card, FileField, Pill } from '../supplier-driver-shared/ui';
 import { uploadFile } from '../supplier-driver-shared/storage';
 import { t } from '../supplier-driver-shared/t';
 import { permitRemaining } from '../supplier/permit';
+import { TemperatureCard } from './TemperatureCard';
 import { DriverNav } from './DriverNav';
 import { OfflineBanner } from './OfflineBanner';
 import { useOfflineQueue } from './useOfflineQueue';
 import { getOfflineQueue } from './offlineQueue';
-import { confirmPickup, getPickupInfo, getTrip } from './data';
+import { confirmPickup, getHeatThreshold, getPickupInfo, getTrip, getTripStops } from './data';
 import { birdsPerCrateLimit, HEAT_THRESHOLD_C, maxBirdsOnLoad, pickupBlockers } from './rules';
 import { looksOffline } from './sync';
 import { friendlyError } from '../supplier-driver-shared/errors';
-import type { DriverTrip, PickupInfo } from './types';
+import type { DriverTrip, PickupInfo, TripStops } from './types';
 
 export default function DriverPickup() {
   const { id = '' } = useParams();
@@ -33,8 +34,13 @@ export default function DriverPickup() {
   const [shortReason, setShortReason] = useState('');
 
   const i = info.data;
-  const forecast = trip.data?.forecast_temp_c ?? null;
-  const { limit, hot } = birdsPerCrateLimit({ max_per_crate: i?.max_per_crate ?? null, max_per_crate_hot: i?.max_per_crate_hot ?? null }, forecast);
+  const stops = useSupabaseQuery<TripStops[]>(() => getTripStops(), [id]);
+  const heat = useSupabaseQuery<{ key: string; value: unknown }>(() => getHeatThreshold(), []);
+  const [tempNow, setTempNow] = useState<number | null>(null);
+  const threshold = typeof heat.data?.value === 'number' ? heat.data.value : HEAT_THRESHOLD_C;
+  const stop = (stops.data ?? []).find((x) => x.trip_id === id);
+  const forecast = tempNow ?? trip.data?.forecast_temp_c ?? null;
+  const { limit, hot } = birdsPerCrateLimit({ max_per_crate: i?.max_per_crate ?? null, max_per_crate_hot: i?.max_per_crate_hot ?? null }, forecast, threshold);
   const maxBirds = maxBirdsOnLoad(limit, i?.crates ?? null);
   const permit = permitRemaining(i?.permit_valid_until);
   const expected = i?.expected_birds ?? null;
@@ -102,6 +108,10 @@ export default function DriverPickup() {
               )}
             </Card>
 
+            {trip.data && (
+              <TemperatureCard tripId={id} lat={stop?.pickup_lat ?? null} lng={stop?.pickup_lng ?? null} current={forecast} onTemp={(c) => setTempNow(c)} />
+            )}
+
             {isFinite(forecast ?? NaN) && forecast != null && (
               <div
                 role={hot ? 'alert' : 'status'}
@@ -109,7 +119,7 @@ export default function DriverPickup() {
                 className={`rounded-2xl p-4 font-body ${hot ? 'bg-chilli text-cream' : 'bg-white'}`}
               >
                 <p className="font-heading text-xl font-bold">{t('driver.pickup.forecast', { temp: forecast })}</p>
-                {hot && <p className="mt-1 text-base font-semibold">{t('driver.pickup.heat_warning', { threshold: HEAT_THRESHOLD_C })}</p>}
+                {hot && <p className="mt-1 text-base font-semibold">{t('driver.pickup.heat_warning', { threshold })}</p>}
               </div>
             )}
 
