@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '../../components/Button';
 import { Card } from '../supplier-driver-shared/ui';
-import { friendlyError } from '../supplier-driver-shared/errors';
 import { t } from '../supplier-driver-shared/t';
 import { recordTemperature } from './data';
 import { currentTempFrom, forecastUrl, parseTemperature } from './rules';
@@ -44,7 +43,7 @@ export function TemperatureCard({ tripId, lat, lng, current, onTemp }: {
     setMsg(null);
     const { error } = await recordTemperature({ p_trip_id: tripId, p_temp_c: c, p_source: 'measured' });
     setBusy(false);
-    if (error) return setMsg(friendlyError(error.message));
+    if (error) return setMsg(error.message);
     setSource('measured');
     setText('');
     onTemp(c, 'measured');

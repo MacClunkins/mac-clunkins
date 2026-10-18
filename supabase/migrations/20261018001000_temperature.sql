@@ -28,7 +28,10 @@ revoke all on public.admin_trips from public, anon, authenticated;
 grant select on public.admin_trips to authenticated;
 
 -- The heat limit is not sensitive and the driver app needs it.
-update public.settings set is_public = true where key = 'heat_warn_c';
+-- (insert, not update: on a fresh database the seed that normally creates this row runs after the migrations)
+insert into public.settings (key, value, is_public, description)
+values ('heat_warn_c', '30'::jsonb, true, 'Forecast above this triggers a heat warning, °C')
+on conflict (key) do update set is_public = true;
 
 create or replace function public.driver_record_temperature(p_trip_id uuid, p_temp_c numeric, p_source text)
 returns void language plpgsql security definer set search_path = '' as $$

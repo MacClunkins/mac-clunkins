@@ -66,7 +66,7 @@ insert into public.settings (key, value, is_public, description) values
   ('min_order',              '10'::jsonb,     true,  'Minimum order, birds'),
   ('unpaid_cancel_hours',    '24'::jsonb,     true,  'Unpaid orders cancel after this many hours'),
   ('issue_window_hours',     '2'::jsonb,      true,  'Window to report a problem after delivery'),
-  ('heat_warn_c',            '30'::jsonb,     false, 'Forecast above this triggers a heat warning, °C'),
+  ('heat_warn_c',            '30'::jsonb,     true,  'Forecast above this triggers a heat warning, °C'),
   ('journey_warn_hours',     '2'::jsonb,      false, 'Journey longer than this triggers a warning'),
   -- Not decided yet. Stays null; the app must render "not set", never a silent default.
   ('delivery_timeline',      null,            true,  'Delivery promise after payment — NOT DECIDED YET'),
