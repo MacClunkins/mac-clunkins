@@ -7,6 +7,8 @@ import SupplierStock from '../pages/supplier/Stock';
 import SupplierPrices from '../pages/supplier/Prices';
 import SupplierRequirements from '../pages/supplier/Requirements';
 import SupplierOnboarding from '../pages/supplier/Onboarding';
+import SupplierHelp from '../pages/supplier/Help';
+import SupplierNotifications from '../pages/supplier/Notifications';
 import SupplierPayouts from '../pages/supplier/Payouts';
 
 const guard = (el: JSX.Element) => <ProtectedRoute allow={['supplier']}>{el}</ProtectedRoute>;
@@ -21,5 +23,7 @@ export const supplierRoutes = (
     <Route path="/supplier/requirements" element={guard(<SupplierRequirements />)} />
     <Route path="/supplier/onboarding" element={<OnboardingGuard role="supplier"><SupplierOnboarding /></OnboardingGuard>} />
     <Route path="/supplier/payouts" element={guard(<SupplierPayouts />)} />
+    <Route path="/supplier/help" element={guard(<SupplierHelp />)} />
+    <Route path="/supplier/inbox" element={guard(<SupplierNotifications />)} />
   </>
 );

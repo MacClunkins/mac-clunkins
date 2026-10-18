@@ -5,6 +5,8 @@
 import { supabase } from '../../lib/supabase';
 import { isForwardTransition, validateResolution } from './logic/cases';
 import { canRetry } from './logic/payouts';
+import type { MoneyCheckInput } from './logic/moneyCheck';
+import type { AuditRow } from './logic/audit';
 import { defFor, sameValue, validateSetting } from './logic/settings';
 import type {
   AllocationRow, AreaRow, CaseCostOwner, CaseEventRow, CaseResolution, CaseRow, CaseStatus,
@@ -602,4 +604,153 @@ export async function loadDriverParties(client: DbClient = db): Promise<Result<D
     id: d.profile_id, name: d.profile?.business_name || d.profile?.full_name || '', phone: d.profile?.whatsapp_phone ?? null,
     status: d.profile?.status ?? 'unknown', paused: !!d.paused, capacity_birds: d.capacity_birds ?? null, covered: !!d.covered,
   })));
+}
+
+/* ---------------------------------------------------------------- money check */
+
+
+const chunk = <T,>(xs: T[], n: number): T[][] => Array.from({ length: Math.ceil(xs.length / n) }, (_, i) => xs.slice(i * n, i * n + n));
+
+async function inChunks<T>(table: string, column: string, ids: string[], select = '*', client: DbClient = db): Promise<T[]> {
+  const out: T[] = [];
+  for (const part of chunk(ids, 40)) {
+    const r = await client.from(table).select(select).in(column, part);
+    if (r.error) throw r.error;
+    out.push(...((r.data ?? []) as T[]));
+  }
+  return out;
+}
+
+/** The latest orders with everything needed to check that the money adds up. Reads only what admins can already read. */
+export async function loadMoneyCheck(limit = 200, client: DbClient = db): Promise<Result<MoneyCheckInput[]>> {
+  try {
+    const o = await client.from('orders').select('id, number, status, total_cents, placed_at').order('placed_at', { ascending: false }).limit(limit);
+    if (o.error) return fail(o.error);
+    const orders = (o.data ?? []) as MoneyCheckInput['order'][];
+    const ids = orders.map((x) => x.id);
+    const [allocations, payments] = await Promise.all([
+      inChunks<AllocationRow>('admin_allocations', 'order_id', ids, '*', client),
+      inChunks<PaymentRow>('payments', 'order_id', ids, '*', client),
+    ]);
+    const trips = allocations.length ? await inChunks<TripRow>('admin_trips', 'allocation_id', allocations.map((a) => a.id), '*', client) : [];
+    const [byAlloc, byTrip] = await Promise.all([
+      allocations.length ? inChunks<TransferRow>('transfers', 'allocation_id', allocations.map((a) => a.id), '*', client) : [],
+      trips.length ? inChunks<TransferRow>('transfers', 'trip_id', trips.map((x) => x.id), '*', client) : [],
+    ]);
+    const transfers = [...byAlloc, ...byTrip];
+    // Proofs only exist once payment evidence is deployed; if the table is missing there are simply no payout fees.
+    let fees = new Map<string, number>();
+    try {
+      const proofs = transfers.length ? await inChunks<{ transfer_id: string; bank_fee_cents: number | null }>('transfer_proofs', 'transfer_id', transfers.map((x) => x.id), 'transfer_id, bank_fee_cents', client) : [];
+      fees = new Map(proofs.map((p) => [p.transfer_id, p.bank_fee_cents ?? 0]));
+    } catch { /* no payout fees to count */ }
+
+    const allocOrder = new Map(allocations.map((a) => [a.id, a.order_id]));
+    const tripOrder = new Map(trips.map((x) => [x.id, allocOrder.get(x.allocation_id) ?? '']));
+    const orderOfTransfer = (t: TransferRow) => (t.allocation_id ? allocOrder.get(t.allocation_id) : t.trip_id ? tripOrder.get(t.trip_id) : undefined);
+    return ok(orders.map((order) => {
+      const myAllocs = allocations.filter((a) => a.order_id === order.id);
+      const myTrips = trips.filter((x) => allocOrder.get(x.allocation_id) === order.id);
+      const myTransfers = transfers.filter((t) => orderOfTransfer(t) === order.id);
+      return {
+        order, allocations: myAllocs, trips: myTrips, transfers: myTransfers,
+        payments: payments.filter((p) => p.order_id === order.id),
+        payoutFeesCents: myTransfers.reduce((n, t) => n + (fees.get(t.id) ?? 0), 0),
+      };
+    }));
+  } catch (e) {
+    return fail({ message: (e as { message?: string }).message ?? 'Could not load the money check.' });
+  }
+}
+
+/* ---------------------------------------------------------------- audit log */
+
+
+export interface AuditFilter { entity?: string; search?: string; before?: string; limit?: number }
+
+export async function loadAuditLog(f: AuditFilter = {}, client: DbClient = db): Promise<Result<AuditRow[]>> {
+  let q = client.from('audit_log').select('id, actor_id, action, entity, entity_id, before, after, created_at')
+    .order('created_at', { ascending: false }).limit(f.limit ?? 100);
+  if (f.entity) q = q.eq('entity', f.entity);
+  if (f.search?.trim()) q = q.ilike('action', `%${f.search.trim().replace(/[%_]/g, '')}%`);
+  if (f.before) q = q.lt('created_at', f.before);
+  const r = await q;
+  if (r.error) return fail(r.error);
+  const rows = (r.data ?? []) as AuditRow[];
+  const names = await namesFor(rows.map((x) => x.actor_id), client);
+  return ok(rows.map((x) => ({ ...x, actor: x.actor_id ? names.get(x.actor_id) ?? null : null })));
+}
+
+/** Everything the system recorded about one order: the order, its quote, jobs, trips, payments, payouts, incidents. */
+export async function loadOrderHistory(
+  order: { id: string; quote_id?: string | null },
+  allocationIds: string[], tripIds: string[], paymentIds: string[],
+  client: DbClient = db,
+): Promise<Result<{ audit: AuditRow[]; incidents: { id: string; number: string; title: string; kind: string; status: string; created_at: string }[] }>> {
+  const [tr1, tr2, inc] = await Promise.all([
+    allocationIds.length ? client.from('transfers').select('id').in('allocation_id', allocationIds) : Promise.resolve({ data: [], error: null }),
+    tripIds.length ? client.from('transfers').select('id').in('trip_id', tripIds) : Promise.resolve({ data: [], error: null }),
+    client.from('incidents').select('id, number, title, kind, status, created_at').eq('order_id', order.id),
+  ]);
+  const err = firstError(tr1, tr2);
+  if (err) return fail(err);
+  const transferIds = [...(tr1.data ?? []), ...(tr2.data ?? [])].map((x: { id: string }) => x.id);
+  // Incidents are an extra: if that table is not there (or cannot be read) the rest of the history still shows.
+  const incidents = (inc.error ? [] : inc.data ?? []) as { id: string; number: string; title: string; kind: string; status: string; created_at: string }[];
+  const ids = [order.id, order.quote_id, ...allocationIds, ...tripIds, ...paymentIds, ...transferIds, ...incidents.map((i) => i.id)].filter((x): x is string => !!x);
+  const a = await client.from('audit_log').select('id, actor_id, action, entity, entity_id, before, after, created_at').in('entity_id', ids).order('created_at');
+  if (a.error) return fail(a.error);
+  const rows = (a.data ?? []) as AuditRow[];
+  const names = await namesFor(rows.map((x) => x.actor_id), client);
+  return ok({ audit: rows.map((x) => ({ ...x, actor: x.actor_id ? names.get(x.actor_id) ?? null : null })), incidents });
+}
+
+/* ------------------------------------------------------------------ incidents */
+
+export interface IncidentRow {
+  id: string; number: string; kind: string; severity: 'info' | 'warn' | 'critical';
+  status: 'open' | 'in_review' | 'resolved' | 'dismissed'; source: 'auto' | 'user' | 'admin';
+  raised_by: string | null; raised_role: string | null; order_id: string | null; allocation_id: string | null; trip_id: string | null;
+  title: string; details: string | null; data: Record<string, unknown> | null; resolution_note: string | null;
+  resolved_at: string | null; created_at: string;
+  raiser?: NameRef | null; order_number?: string | null;
+}
+export interface IncidentEvent {
+  id: string; incident_id: string; actor_id: string | null; kind: 'comment' | 'status' | 'correction';
+  body: string; visible_to_raiser: boolean; created_at: string; actor?: NameRef | null;
+}
+
+export async function loadIncidents(): Promise<Result<IncidentRow[]>> {
+  const r = await db.from('incidents').select('*').order('created_at', { ascending: false }).limit(300);
+  if (r.error) return fail(r.error);
+  const rows = (r.data ?? []) as IncidentRow[];
+  const names = await namesFor(rows.map((x) => x.raised_by));
+  const orderIds = [...new Set(rows.map((x) => x.order_id).filter((x): x is string => !!x))];
+  const orders = orderIds.length ? await db.from('orders').select('id, number').in('id', orderIds) : { data: [] };
+  const numbers = new Map(((orders.data ?? []) as { id: string; number: string }[]).map((o) => [o.id, o.number]));
+  return ok(rows.map((x) => ({ ...x, raiser: x.raised_by ? names.get(x.raised_by) ?? null : null, order_number: x.order_id ? numbers.get(x.order_id) ?? null : null })));
+}
+
+export async function loadIncidentEvents(incidentId: string): Promise<Result<IncidentEvent[]>> {
+  const r = await db.from('incident_events').select('*').eq('incident_id', incidentId).order('created_at');
+  if (r.error) return fail(r.error);
+  const rows = (r.data ?? []) as IncidentEvent[];
+  const names = await namesFor(rows.map((x) => x.actor_id));
+  return ok(rows.map((x) => ({ ...x, actor: x.actor_id ? names.get(x.actor_id) ?? null : null })));
+}
+
+export async function updateIncident(id: string, status: IncidentRow['status'], note: string, visible: boolean, client: DbClient = db): Promise<Result<null>> {
+  const r = await client.rpc('admin_update_incident', { p_id: id, p_status: status, p_note: note, p_visible: visible });
+  return r.error ? fail(r.error) : ok(null);
+}
+
+export async function correctPickupCount(allocationId: string, count: number, reason: string, incidentId: string | null, client: DbClient = db): Promise<Result<null>> {
+  if (!Number.isInteger(count) || count < 0) return fail({ message: 'not_integer', code: 'not_integer' });
+  const r = await client.rpc('admin_correct_pickup_count', { p_allocation_id: allocationId, p_count: count, p_reason: reason, p_incident_id: incidentId });
+  return r.error ? fail(r.error) : ok(null);
+}
+
+export async function forceDelivery(tripId: string, count: number | null, reason: string, client: DbClient = db): Promise<Result<null>> {
+  const r = await client.rpc('admin_force_delivery', { p_trip_id: tripId, p_count: count, p_reason: reason });
+  return r.error ? fail(r.error) : ok(null);
 }
