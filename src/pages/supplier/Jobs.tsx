@@ -9,7 +9,7 @@ import { useSupabaseQuery } from '../../lib/useQuery';
 import { Pill, Stat, Tabs } from '../supplier-driver-shared/ui';
 import { t } from '../supplier-driver-shared/t';
 import { SupplierNav } from './SupplierNav';
-import { approvalState, tabForStatus, weekStartISO, type JobTab } from './logic';
+import { approvalState, jobPayout, tabForStatus, weekStartISO, type JobTab } from './logic';
 import { getSupplierDetails, listAllocations, listDocuments, listStock, respondToAllocation } from './data';
 import type { ComplianceDoc, StockRow, SupplierAllocation, SupplierDetails } from './types';
 
@@ -94,7 +94,14 @@ export default function SupplierJobs() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-heading text-lg font-bold">{formatCents(job.supplier_price_cents * job.quantity)}</p>
+                    <p className="font-heading text-lg font-bold">{formatCents(jobPayout(job).cents)}</p>
+                    <p className="font-body text-xs text-ink/60" data-testid="job-payout-note">
+                      {jobPayout(job).short
+                        ? t('supplier.jobs.short_pickup', { counted: jobPayout(job).birds, ordered: job.quantity })
+                        : jobPayout(job).collected
+                          ? t('supplier.jobs.payout_collected', { count: jobPayout(job).birds })
+                          : t('supplier.jobs.payout_note')}
+                    </p>
                     <Pill tone={job.status === 'ready' ? 'good' : 'neutral'}>{t(`supplier.status.${job.status}`)}</Pill>
                   </div>
                 </div>
