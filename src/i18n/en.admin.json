@@ -218,7 +218,7 @@
         "note": "Note",
         "markPaid": "Mark as paid",
         "markPaidNote": "Use this once the full amount has reached the bank account. It issues the receipt and releases the order for scheduling.",
-        "notPayable": "This order is not awaiting payment.",
+        "notPayable": "This order is not awaiting payment.", "bankFee": "Bank fee on this payment (R, optional)", "bankFeeHelp": "What the bank charged to receive it. Leave empty if there was no charge.", "feeInvalid": "Enter the fee in rand, for example 12.50.", "buyerProofs": "Proof of payment from the buyer", "noProofs": "The buyer has not sent a slip yet.", "viewProof": "View",
         "download": "Download PDF",
         "methods": {
             "eft": "EFT",
