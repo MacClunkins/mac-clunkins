@@ -63,7 +63,7 @@ async function renderPdf(doc: any): Promise<Uint8Array> {
       }
     }
   } else {
-    text('This quote is not an invoice. No payment is due until an order is placed.', 50, 9, font, GREY);
+    text('This quote is not an invoice. No payment is due until an order is placed.', 50, 9, font, GREY); y -= 14;
   }
   text('No VAT charged - supplier is not VAT registered.', 50, 8, font, GREY);
   return await pdf.save();
