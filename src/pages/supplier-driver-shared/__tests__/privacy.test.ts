@@ -61,7 +61,7 @@ describe('driver data access', () => {
     expect(tables).toContain('driver_trips');
   });
   it('gets addresses/buyer first name only through the whitelisted RPCs', () => {
-    expect(rpcs(src).sort()).toEqual(['driver_confirm_delivery', 'driver_confirm_pickup', 'driver_pickup_info', 'driver_supplier_requirements', 'driver_trip_stops']);
+    expect(rpcs(src).sort()).toEqual(['driver_confirm_delivery', 'driver_confirm_pickup', 'driver_pickup_info', 'driver_supplier_requirements', 'driver_trip_stops', 'driver_update_location']);
   });
   it('driver pages and types never name supplier price or buyer surname/phone fields', () => {
     for (const f of walk(join(pages, 'driver'))) {
