@@ -38,7 +38,7 @@ export default function Track() {
           />
 
           <Card>
-            <p className="text-sm text-ink/60">{t('buyer.track.eta')}</p>
+            <p className="text-sm text-ink/60">{info?.eta_source === 'window' ? t('buyer.track.etaWindow') : t('buyer.track.eta')}</p>
             <p className="font-heading text-2xl font-bold" data-testid="eta">
               {info?.eta_at ? formatTime(info.eta_at) : t('buyer.track.etaPending')}
             </p>

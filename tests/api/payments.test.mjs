@@ -58,7 +58,7 @@ test('verified payment: order paid, allocations + trips created, stock committed
   assert.equal(o.status, 'paid'); assert.ok(o.paid_at); assert.match(o.delivery_code, /^\d{4}$/);
   const [pm] = await sql('select status, channel, fee_cents from public.payments where paystack_reference = $1', [p.reference]);
   assert.deepEqual([pm.status, pm.channel, pm.fee_cents], ['succeeded', 'card', 16746]);
-  const al = await sql('select a.*, t.delivery_fee_cents, t.driver_share_cents, t.driver_id from public.allocations a join public.trips t on t.allocation_id = a.id where order_id = $1', [order.order_id]);
+  const al = await sql('select a.*, tc.delivery_fee_cents, t.driver_share_cents, t.driver_id from public.allocations a join public.trips t on t.allocation_id = a.id join public.trip_costs tc on tc.trip_id = t.id where order_id = $1', [order.order_id]);
   assert.equal(al.length, 1);
   assert.equal(al[0].supplier_id, ID.s4); assert.equal(al[0].quantity, 50); assert.equal(al[0].supplier_price_cents, 9000);
   assert.equal(al[0].driver_id, null);                       // admin assigns the driver
