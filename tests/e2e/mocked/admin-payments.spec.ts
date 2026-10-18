@@ -27,8 +27,30 @@ test.describe('admin: record a manual payment', () => {
     await page.getByRole('button', { name: 'Mark as paid' }).click();
     await expect.poll(() => m.rpcCalls.filter((c) => c.name === 'admin_mark_order_paid').length).toBe(1);
     expect(m.rpcCalls.find((c) => c.name === 'admin_mark_order_paid')?.args).toEqual({
-      p_order_id: ORDER_ID, p_amount_cents: 26000, p_method: 'cash', p_reference: 'SLIP-9', p_note: 'paid at depot',
+      p_order_id: ORDER_ID, p_amount_cents: 26000, p_method: 'cash', p_reference: 'SLIP-9', p_note: 'paid at depot', p_bank_fee_cents: null,
     });
+  });
+
+  test('records the bank fee in cents and shows the proof of payment the buyer sent', async ({ page }) => {
+    const m = adminWorld();
+    m.table('payment_proofs', [{ id: 'pp1', order_id: ORDER_ID, file_path: 'buyer/b0/x.pdf', note: null, created_at: new Date().toISOString() }]);
+    await m.install(page);
+    await open(page);
+    await expect(page.getByTestId('buyer-proofs')).toContainText('View');
+    await page.getByLabel('Bank fee on this payment (R, optional)').fill('12.50');
+    await page.getByRole('button', { name: 'Mark as paid' }).click();
+    await expect.poll(() => m.rpcCalls.filter((c) => c.name === 'admin_mark_order_paid').length).toBe(1);
+    expect(m.rpcCalls.find((c) => c.name === 'admin_mark_order_paid')?.args).toMatchObject({ p_bank_fee_cents: 1250 });
+  });
+
+  test('a bad bank fee is refused before anything is sent', async ({ page }) => {
+    const m = adminWorld();
+    await m.install(page);
+    await open(page);
+    await page.getByLabel('Bank fee on this payment (R, optional)').fill('twelve');
+    await page.getByRole('button', { name: 'Mark as paid' }).click();
+    await expect(page.getByRole('alert').filter({ hasText: /fee in rand/i })).toBeVisible();
+    expect(m.rpcCalls.filter((c) => c.name === 'admin_mark_order_paid')).toHaveLength(0);
   });
 
   test('a server refusal is shown and the order stays unpaid', async ({ page }) => {

@@ -13,6 +13,7 @@ import { formatJourney, isEligible, rankCandidates } from './logic/matching';
 import { driverShareCents, evaluateRematch } from './logic/money';
 import { breakdownInput, orderMoney } from './logic/orderMoney';
 import { MoneyBreakdown } from './MoneyBreakdown';
+import { OrderHistory } from './OrderHistory';
 import { RecordPayment } from './RecordPayment';
 import type { AllocationRow, MatchCandidate } from './types';
 import { t } from './i18n';
@@ -92,6 +93,7 @@ function Body({ detail, reload }: { detail: Detail; reload: () => void }) {
             </ol>
           )}
         </section>
+        <OrderHistory order={order} allocations={allocations} trips={trips} payments={payments} events={events} />
       </div>
       {dialog}
     </div>

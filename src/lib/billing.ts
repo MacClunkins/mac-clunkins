@@ -65,11 +65,11 @@ export async function issueQuoteDocument(quoteId: string): Promise<string> {
 }
 
 export async function adminMarkOrderPaid(args: {
-  orderId: string; amountCents: number; method: ManualMethod; reference?: string; note?: string;
+  orderId: string; amountCents: number; method: ManualMethod; reference?: string; note?: string; bankFeeCents?: number | null;
 }): Promise<{ error: { message: string; code?: string } | null }> {
   const { error } = await supabase.rpc('admin_mark_order_paid', {
     p_order_id: args.orderId, p_amount_cents: args.amountCents, p_method: args.method,
-    p_reference: args.reference || null, p_note: args.note || null,
+    p_reference: args.reference || null, p_note: args.note || null, p_bank_fee_cents: args.bankFeeCents ?? null,
   });
   return { error };
 }
