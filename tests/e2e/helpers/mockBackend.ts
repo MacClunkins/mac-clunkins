@@ -176,5 +176,10 @@ export async function uiLogin(page: Page, u: { email: string; password: string }
   await page.goto('/login');
   await page.getByLabel('Email').fill(u.email);
   await page.getByLabel('Password').fill(u.password);
+  // Wait for the login to finish before the caller navigates. Returning straight after the click let a
+  // following page.goto() abort the in-flight sign-in, which made tests land on /login at random.
+  const tokenResponse = page.waitForResponse((r) => r.url().includes('/auth/v1/token') && r.request().method() === 'POST');
   await page.getByRole('button', { name: 'Log in' }).click();
+  await tokenResponse;
+  await page.waitForLoadState('networkidle').catch(() => undefined);
 }

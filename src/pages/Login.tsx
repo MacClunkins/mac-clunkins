@@ -15,15 +15,21 @@ export default function Login() {
   const [resetSent, setResetSent] = useState(false);
 
   const suspended = !loading && !!session && profile?.status === 'suspended';
+  // Signing the account out makes `suspended` false again straight away, which would remove the
+  // message before anyone could read it. Remember that we saw it and keep showing it.
+  const [wasSuspended, setWasSuspended] = useState(false);
 
   // A suspended account must lose access immediately, not after ProtectedRoute
   // eventually re-evaluates — sign it back out the moment we see the status.
   useEffect(() => {
-    if (suspended) void signOut();
+    if (suspended) {
+      setWasSuspended(true);
+      void signOut();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [suspended]);
 
-  if (suspended) {
+  if (suspended || wasSuspended) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-cream px-6 py-12 text-ink">
         <div className="w-full max-w-sm text-center">

@@ -4,12 +4,13 @@ import { EmptyState } from '../../components/DashboardShell';
 import { FormError } from '../../components/FormField';
 import { PageSpinner } from '../../components/PageSpinner';
 import { formatCents } from '../../lib/format';
-import { listOrders } from './api';
+import { listOrders, listQuotes } from './api';
 import { BuyerLayout, Card } from './components/BuyerLayout';
 import { StatusBadge } from './components/StatusBadge';
 import { useAsync } from './hooks/useAsync';
 import { t } from './i18n-shim';
 import { formatDate, formatMonth } from './lib/dates';
+import { isWaitingForPrice, visibleQuotes } from './lib/quoteList';
 import {
   FILTER_KEYS,
   type FilterKey,
@@ -31,6 +32,8 @@ const hasInvoice = (o: OrderRow) => o.status !== 'placed' && o.status !== 'cance
 
 export default function BuyerOrders() {
   const { data, loading, error } = useAsync(listOrders, []);
+  const quotes = useAsync(listQuotes, []);
+  const openQuotes = visibleQuotes(quotes.data ?? []);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<FilterKey>('all');
   const [page, setPage] = useState(1);
@@ -63,6 +66,40 @@ export default function BuyerOrders() {
           {t('buyer.orders.newOrder')}
         </Link>
       </div>
+
+      {openQuotes.length > 0 && (
+        <section aria-label={t('buyer.quotes.title')} className="mt-6">
+          <h2 className="mb-2 font-heading text-lg font-bold">{t('buyer.quotes.title')}</h2>
+          <ul className="flex flex-col gap-3">
+            {openQuotes.map((q) => (
+              <li key={q.id}>
+                <Card>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="font-semibold">
+                        {t('buyer.orders.birdsLine', { n: q.quantity, type: t(`buyer.birdType.${q.bird_type}`) })}
+                      </p>
+                      <p className="text-sm text-ink/70" data-testid="quote-state">
+                        {isWaitingForPrice(q)
+                          ? t('buyer.quotes.waiting')
+                          : `${t('buyer.quotes.ready')} · ${formatCents(q.total_cents ?? 0)}${q.expires_at ? ` · ${t('buyer.quotes.until', { when: formatDate(q.expires_at) })}` : ''}`}
+                      </p>
+                    </div>
+                    {!isWaitingForPrice(q) && (
+                      <Link
+                        to={`/quotes/${q.id}`}
+                        className="rounded-full bg-chilli px-4 py-2 font-semibold text-cream hover:bg-chilli/90"
+                      >
+                        {t('buyer.quotes.view')}
+                      </Link>
+                    )}
+                  </div>
+                </Card>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {loading && <PageSpinner label={t('buyer.orders.loading')} />}
       <FormError message={error ? t('buyer.orders.loadError', { message: error }) : null} />

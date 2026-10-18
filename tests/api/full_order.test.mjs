@@ -237,3 +237,41 @@ test('admin_quote_candidates explains why a supplier is left out, and ranks the 
   assert.equal((await actTry(c, ID.buyer, 'select * from public.admin_quote_candidates($1)', [req.quote_id])).error?.code, '42501');
   assert.equal((await actTry(c, ID.s4, 'select * from public.admin_quote_candidates($1)', [req.quote_id])).error?.code, '42501');
 });
+
+test('pricing a requested quote sends it back: the buyer gets a quote document and a notification, a re-price replaces it', async () => {
+  const req = await requestQuote(400);
+  assert.equal(req.kind, 'requested');
+  // Nothing for the buyer to open until it is priced.
+  assert.equal((await sql(`select 1 from public.billing_documents where quote_id = $1`, [req.quote_id])).length, 0);
+  assert.equal((await sql(`select 1 from public.notifications where template = 'quote_ready'`)).length, 0);
+
+  const price = (birds1, birds2) => act(c, ID.admin, 'select public.admin_price_quote($1, $2::jsonb)', [req.quote_id,
+    JSON.stringify([{ supplier_id: ID.s4, birds: birds1, price_cents: 9000 }, { supplier_id: ID.s2, birds: birds2, price_cents: 7000 }])]);
+  await price(200, 200);
+
+  // The buyer can read their own quote document, and sees the quote in buyer_quotes with a price.
+  const docs = await act(c, ID.buyer, `select number, amount_cents from public.billing_documents where quote_id = $1 and kind = 'quote'`, [req.quote_id]);
+  assert.equal(docs.length, 1);
+  const q1 = await one('select total_cents from public.quotes where id = $1', [req.quote_id]);
+  assert.equal(docs[0].amount_cents, q1.total_cents);
+  const [view] = await act(c, ID.buyer, 'select total_cents, status, kind from public.buyer_quotes where id = $1', [req.quote_id]);
+  assert.deepEqual([view.status, view.kind], ['open', 'requested']);
+  assert.ok(view.total_cents > 0);
+
+  // One notification is queued for the buyer, with no supplier detail in it.
+  const notes = await sql(`select profile_id, channel, payload from public.notifications where template = 'quote_ready'`);
+  assert.equal(notes.length, 1);
+  assert.equal(notes[0].profile_id, ID.buyer);
+  assert.equal(notes[0].payload.quote_id, req.quote_id);
+  assert.ok(!JSON.stringify(notes[0].payload).includes(ID.s4));
+
+  // Another buyer cannot see the document.
+  assert.equal((await act(c, ID.buyer2, `select 1 from public.billing_documents where quote_id = $1`, [req.quote_id])).length, 0);
+
+  // Re-pricing replaces the document with the new amount rather than leaving a stale one.
+  await price(300, 100);
+  const after = await sql(`select amount_cents from public.billing_documents where quote_id = $1 and kind = 'quote'`, [req.quote_id]);
+  const q2 = await one('select total_cents from public.quotes where id = $1', [req.quote_id]);
+  assert.equal(after.length, 1);
+  assert.equal(after[0].amount_cents, q2.total_cents);
+});
