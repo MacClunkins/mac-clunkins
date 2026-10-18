@@ -6,7 +6,7 @@ import { Button } from '../../components/Button';
 import { useAuth } from '../../auth/AuthContext';
 import { useSupabaseQuery } from '../../lib/useQuery';
 import { Card, Check, FileField, NumberField, Pill } from '../supplier-driver-shared/ui';
-import { uploadFile } from '../supplier-driver-shared/storage';
+import { openDocument, uploadFile } from '../supplier-driver-shared/storage';
 import { t } from '../supplier-driver-shared/t';
 import { DriverNav } from './DriverNav';
 import { getDriverVehicle, listDriverDocuments, listRequirementSummaries, saveDriverDocument, saveDriverVehicle } from './data';
@@ -86,6 +86,11 @@ export default function DriverOnboarding() {
                       <span className="font-body text-sm font-semibold">{t(`doc.${kind}`)}</span>
                       <Pill tone={status === 'approved' ? 'good' : status === 'rejected' ? 'bad' : status === 'uploaded' ? 'warn' : 'neutral'}>{t(`doc.status.${status}`)}</Pill>
                     </div>
+                    {d?.file_path && (
+                      <Button variant="secondary" type="button" className="min-h-12" onClick={() => void openDocument(d.file_path as string).then((e) => e && setMsg(e))}>
+                        {t('driver.onb.view_doc', { doc: t(`doc.${kind}`) })}
+                      </Button>
+                    )}
                     <FileField label={t('driver.onb.upload')} accept="image/*,application/pdf" done={status === 'uploaded' || status === 'approved'} onFile={(f) => void uploadDoc(kind, f)} />
                   </li>
                 );

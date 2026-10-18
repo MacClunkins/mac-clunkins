@@ -47,7 +47,7 @@ export const ALL_TABLES = [
   'supplier_requirements', 'stock', 'driver_details', 'documents', 'delivery_slots',
   'quotes', 'orders', 'allocations', 'trips', 'payments', 'transfers', 'refunds',
   'cases', 'case_events', 'ratings', 'order_events', 'pdma_reports', 'notifications',
-  'audit_log', 'settings', 'areas_served', 'consents',
+  'audit_log', 'settings', 'areas_served', 'consents', 'quote_costs', 'allocation_costs', 'trip_costs', 'trip_locations',
 ];
 
 export const PUBLIC_TABLES = ['provinces', 'delivery_slots', 'areas_served'];
@@ -123,6 +123,16 @@ export async function assertNoData(tryQ, sql, params, label) {
 }
 
 /** Asserts a column cannot be selected at all by this role. */
+/** The column was moved to an admin-only table, so it no longer exists on the base table. */
+export async function assertColumnAbsent(tryQ, table, column, label) {
+  const result = await tryQ(`select ${column} from public.${table} limit 1`);
+  assert.equal(result.ok, false, `${label}: ${table}.${column} was selectable and must not exist`);
+  assert.equal(
+    result.error.code, '42703',
+    `${label}: expected 42703 (no such column) on ${table}.${column}, got ${result.error.code}: ${result.error.message}`,
+  );
+}
+
 export async function assertColumnUnreachable(tryQ, table, column, label) {
   const result = await tryQ(`select ${column} from public.${table} limit 1`);
   assert.equal(result.ok, false, `${label}: ${table}.${column} was selectable and must not be`);

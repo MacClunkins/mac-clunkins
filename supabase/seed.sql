@@ -202,16 +202,19 @@ where profile_id = '44444444-4444-4444-8444-444444444444';
 
 insert into public.quotes (
   id, buyer_id, address_id, bird_type, weight_band, quantity,
-  matched_supplier_id, distance_km, supplier_price_cents, bird_price_cents,
-  delivery_fee_cents, service_fee_cents, total_cents, kind, status, expires_at
+  bird_price_cents, delivery_fee_cents, service_fee_cents, total_cents, kind, status, expires_at
 ) values (
   'ccccccc1-0000-4000-8000-000000000001',
   '22222222-2222-4222-8222-222222222222', 'bbbbbbb1-0000-4000-8000-000000000001',
   'broiler', '2_to_2_5kg', 50,
-  '33333333-3333-4333-8333-333333333333', 38.00,
-  7500, 8625, 50400, 16858, 498508,
+  8625, 50400, 16858, 498508,
   'instant', 'accepted', now() + interval '30 minutes'
 ) on conflict (id) do nothing;
+
+-- Supplier match and price live on the admin-only cost table, not on quotes.
+insert into public.quote_costs (quote_id, matched_supplier_id, distance_km, supplier_price_cents)
+values ('ccccccc1-0000-4000-8000-000000000001', '33333333-3333-4333-8333-333333333333', 38.00, 7500)
+on conflict (quote_id) do nothing;
 
 -- orders.number is assigned by the trigger, so it is deliberately not supplied here.
 insert into public.orders (
@@ -239,19 +242,27 @@ insert into public.payments (order_id, paystack_reference, channel, amount_cents
   ('ddddddd1-0000-4000-8000-000000000002', 'mcc_test_ref_0002', 'eft',  327485,  6550, 'succeeded');
 
 insert into public.allocations (
-  id, order_id, supplier_id, quantity, supplier_price_cents, distance_km,
+  id, order_id, supplier_id, quantity, supplier_price_cents,
   status, pickup_at, crosses_province
 ) values (
   'eeeeeee1-0000-4000-8000-000000000001', 'ddddddd1-0000-4000-8000-000000000001',
-  '33333333-3333-4333-8333-333333333333', 50, 7500, 38.00,
+  '33333333-3333-4333-8333-333333333333', 50, 7500,
   'accepted', (current_date + 2)::timestamptz + interval '8 hours', false
 ) on conflict (id) do nothing;
 
+insert into public.allocation_costs (allocation_id, distance_km)
+values ('eeeeeee1-0000-4000-8000-000000000001', 38.00)
+on conflict (allocation_id) do nothing;
+
 insert into public.trips (
-  id, allocation_id, driver_id, delivery_fee_cents, driver_share_cents, status
+  id, allocation_id, driver_id, driver_share_cents, status
 ) values (
   'fffffff1-0000-4000-8000-000000000001', 'eeeeeee1-0000-4000-8000-000000000001',
-  '44444444-4444-4444-8444-444444444444', 50400, 42840, 'assigned'
+  '44444444-4444-4444-8444-444444444444', 42840, 'assigned'
 ) on conflict (id) do nothing;
+
+insert into public.trip_costs (trip_id, delivery_fee_cents)
+values ('fffffff1-0000-4000-8000-000000000001', 50400)
+on conflict (trip_id) do nothing;
 
 commit;

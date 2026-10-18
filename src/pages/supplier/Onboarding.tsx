@@ -6,11 +6,11 @@ import { Button } from '../../components/Button';
 import { useAuth } from '../../auth/AuthContext';
 import { useSupabaseQuery } from '../../lib/useQuery';
 import { Card, FileField, Pill } from '../supplier-driver-shared/ui';
-import { uploadFile } from '../supplier-driver-shared/storage';
+import { openDocument, uploadFile } from '../supplier-driver-shared/storage';
 import { t } from '../supplier-driver-shared/t';
 import { SupplierNav } from './SupplierNav';
 import { approvalState, isExpired, REQUIRED_SUPPLIER_DOCS } from './logic';
-import { getSupplierDetails, listDocuments, listProvinces, saveDocument, saveSupplierDetails } from './data';
+import { getSupplierDetails, listDocuments, listProvinces, saveDocument, saveSupplierDetails, saveSupplierLocation } from './data';
 import type { ComplianceDoc, DocumentStatus, SupplierDetails } from './types';
 
 const tone = (s: DocumentStatus, expired: boolean) =>
@@ -29,6 +29,7 @@ export default function SupplierOnboarding() {
   const [expiry, setExpiry] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [locationSaved, setLocationSaved] = useState(false);
 
   useEffect(() => {
     const d = details.data;
@@ -54,9 +55,22 @@ export default function SupplierOnboarding() {
 
   function useMyLocation() {
     navigator.geolocation?.getCurrentPosition(
-      (p) => setCoords(`SRID=4326;POINT(${p.coords.longitude} ${p.coords.latitude})`),
+      async (p) => {
+        const loc = `SRID=4326;POINT(${p.coords.longitude} ${p.coords.latitude})`;
+        setCoords(loc);
+        setMsg(null);
+        // Saved straight away when the farm record already exists; otherwise it is saved with Submit.
+        if (profile) {
+          const { error } = await saveSupplierLocation(profile.id, loc);
+          if (!error) setLocationSaved(true);
+        }
+      },
       () => setMsg(t('supplier.onb.location_denied')),
     );
+  }
+
+  async function viewDoc(path: string) {
+    setMsg(await openDocument(path));
   }
 
   async function submit() {
@@ -103,6 +117,7 @@ export default function SupplierOnboarding() {
             <Button variant="secondary" className="min-h-12" type="button" onClick={useMyLocation}>
               {coords ? t('supplier.onb.location_set') : t('supplier.onb.use_location')}
             </Button>
+            <p className="font-body text-xs text-ink/60">{locationSaved ? t('supplier.onb.location_saved') : t('supplier.onb.location_help')}</p>
           </div>
         </Card>
 
@@ -122,6 +137,11 @@ export default function SupplierOnboarding() {
                     <span className="font-body text-xs text-ink/60">{t('supplier.onb.expires_on', { date: d.expires_on })}</span>
                   )}
                   {d?.status === 'rejected' && d.notes && <span className="font-body text-xs text-chilli">{d.notes}</span>}
+                  {d?.file_path && (
+                    <Button variant="secondary" type="button" className="min-h-12" onClick={() => void viewDoc(d.file_path as string)}>
+                      {t('supplier.onb.view_doc', { doc: t(`doc.${kind}`) })}
+                    </Button>
+                  )}
                   <input
                     aria-label={t('supplier.onb.expiry_for', { doc: t(`doc.${kind}`) })}
                     type="date"

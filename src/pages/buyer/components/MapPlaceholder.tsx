@@ -32,4 +32,19 @@ export function MapPlaceholder({ center, markers = [], className = '' }: MapView
   );
 }
 
-export const BuyerMap: ComponentType<MapViewProps> = MapPlaceholder;
+/** OpenStreetMap embed centred on the driver. No API key, no extra dependency. */
+export function OsmMap({ center, className = '' }: MapViewProps) {
+  if (!center) return <MapPlaceholder center={null} className={className} />;
+  const d = 0.015;
+  const src = `https://www.openstreetmap.org/export/embed.html?bbox=${center.lng - d},${center.lat - d},${center.lng + d},${center.lat + d}&layer=mapnik&marker=${center.lat},${center.lng}`;
+  return (
+    <iframe
+      title={t('buyer.track.mapAlt')}
+      src={src}
+      loading="lazy"
+      className={`h-64 w-full rounded-2xl border-0 ${className}`}
+    />
+  );
+}
+
+export const BuyerMap: ComponentType<MapViewProps> = OsmMap;

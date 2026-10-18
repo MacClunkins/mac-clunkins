@@ -150,7 +150,35 @@
       "title": "Quotes", "subtitle": "Quote requests from buyers. Price each one by choosing which suppliers fill it. The buyer is then able to see the price and place the order.",
       "tabOpen": "Needs a price", "tabAll": "All quotes", "none": "No quotes here.", "needsPrice": "Needs a price", "price": "Price this quote",
       "priceHelp": "Share the {n} birds across suppliers. Supplier prices are only shown here, never to the buyer.",
-      "noSuppliers": "No supplier can fill this quote right now.", "supplier": "Supplier", "pricePerBird": "Price per bird", "distance": "Distance",
+      "noSuppliers": "There are no suppliers on the platform yet.",
+      "readyPill": "Ready to price", "blockedPill": "Blocked", "readyBody": "{n} supplier(s) can fill this quote. Choose how many birds each one supplies.",
+      "blockedTitle": "This quote cannot be priced yet",
+      "blockedIntro": "No supplier passes every check. Chase the people below; the quote can be priced as soon as one supplier is clear.",
+      "partySupplier": "Supplier: {name}", "partyDrivers": "Drivers", "noDriversAtAll": "No driver has signed up yet.",
+      "whatsapp": "Message on WhatsApp", "noPhone": "No phone number on file",
+      "driverIssue": { "not_active": "Account is not approved yet", "paused": "Account is paused", "no_capacity": "Has not entered how many birds the vehicle carries" },
+      "driverAsk": {
+        "not_active": "Hi {name}, your McCluckin's driver account is waiting for approval. Please finish uploading your documents under Get approved.",
+        "paused": "Hi {name}, your McCluckin's driver account is paused. Please contact us so we can sort it out.",
+        "no_capacity": "Hi {name}, please open McCluckin's, go to Get approved and fill in your vehicle details, including how many birds it carries. We cannot give you trips without it."
+      },
+      "ask": {
+        "not_active": "Hi {name}, your McCluckin's supplier account is waiting for approval. Please finish uploading your documents under Get approved.",
+        "paused": "Hi {name}, your McCluckin's supplier account is paused. Please contact us so we can sort it out.",
+        "no_location": "Hi {name}, we have a buyer order for you but cannot match it yet. Please open McCluckin's, go to Get approved, and tap Use my location while you are at the farm gate.",
+        "no_price": "Hi {name}, please open McCluckin's, go to Prices and set your price per bird for this bird type and weight band.",
+        "flu_zone": "Hi {name}, your farm is in a bird flu zone. Please upload your state vet movement permit under Get approved.",
+        "docs": "Hi {name}, some of your compliance documents are missing, rejected or expired. Please check Get approved and upload them.",
+        "stock": "Hi {name}, please update your available birds for this week under Stock so we can offer you this order."
+      },
+      "noneEligible": "No supplier can fill this quote right now. The reason for each supplier is listed below.",
+      "reason": {
+        "not_active": "Account is not approved yet", "paused": "Account is paused",
+        "no_location": "No farm gate location. The supplier must open Get approved and tap Use my location",
+        "no_price": "No active price for this bird type and weight band", "flu_zone": "In a bird flu zone without an approved movement permit",
+        "docs": "Compliance documents are missing, rejected or expired", "stock": "Not enough stock this week for the supplier's minimum order",
+        "no_driver": "No approved driver can meet this supplier's vehicle rules (a driver needs a capacity, and a covered vehicle if the supplier requires one)"
+      }, "supplier": "Supplier", "pricePerBird": "Price per bird", "distance": "Distance",
       "stock": "Stock", "birds": "Birds", "otherProvince": "other province", "allocated": "{a} of {n} birds chosen", "send": "Send price to buyer"
     },
     "settings": {
