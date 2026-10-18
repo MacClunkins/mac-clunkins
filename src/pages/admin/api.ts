@@ -539,9 +539,13 @@ export interface QuoteRequestRow {
   buyer?: NameRef | null; address?: { town: string | null; province: string | null } | null;
 }
 
+export type CandidateReason =
+  | 'not_active' | 'paused' | 'no_location' | 'no_price' | 'flu_zone' | 'docs' | 'stock' | 'no_driver';
+
 export interface QuoteCandidate {
-  supplier_id: string; supplier_name: string; price_cents: number; distance_km: number;
-  same_province: boolean; stock_available: number; rating_avg: number | null;
+  supplier_id: string; supplier_name: string; phone: string | null; eligible: boolean; reasons: CandidateReason[];
+  price_cents: number | null; distance_km: number | null; same_province: boolean | null;
+  stock_available: number | null; rating_avg: number | null;
 }
 
 export async function loadQuotes(): Promise<Result<QuoteRequestRow[]>> {
@@ -558,11 +562,13 @@ export async function loadQuotes(): Promise<Result<QuoteRequestRow[]>> {
 }
 
 export async function loadQuoteCandidates(quoteId: string, client: DbClient = db): Promise<Result<QuoteCandidate[]>> {
-  const r = await client.rpc('admin_match_preview', { p_quote_id: quoteId });
+  const r = await client.rpc('admin_quote_candidates', { p_quote_id: quoteId });
   if (r.error) return fail(r.error);
   const rows = (r.data ?? []) as Omit<QuoteCandidate, 'supplier_name'>[];
   const names = await namesFor(rows.map((x) => x.supplier_id), client);
-  return ok(rows.map((x) => ({ ...x, supplier_name: displayNameOf(names.get(x.supplier_id)) })));
+  const ph = rows.length ? await client.from('profiles').select('id, whatsapp_phone').in('id', rows.map((x) => x.supplier_id)) : { data: [] };
+  const phones = new Map(((ph.data ?? []) as { id: string; whatsapp_phone: string | null }[]).map((p) => [p.id, p.whatsapp_phone]));
+  return ok(rows.map((x) => ({ ...x, supplier_name: displayNameOf(names.get(x.supplier_id)), phone: phones.get(x.supplier_id) ?? null })));
 }
 
 function displayNameOf(n?: NameRef | null): string {
@@ -580,4 +586,20 @@ export async function priceQuote(quoteId: string, allocations: QuoteAllocation[]
   if (total < 1) return fail({ message: 'allocation_invalid', code: 'allocation_invalid' });
   const r = await client.rpc('admin_price_quote', { p_quote_id: quoteId, p_allocations: allocations });
   return r.error ? fail(r.error) : ok(null);
+}
+
+export interface DriverParty {
+  id: string; name: string; phone: string | null; status: string; paused: boolean;
+  capacity_birds: number | null; covered: boolean;
+}
+
+/** Every driver and what is missing from their vehicle setup, so an admin can chase the right one. */
+export async function loadDriverParties(client: DbClient = db): Promise<Result<DriverParty[]>> {
+  const r = await client.from('driver_details')
+    .select('profile_id, paused, capacity_birds, covered, profile:profiles(full_name, business_name, whatsapp_phone, status)');
+  if (r.error) return fail(r.error);
+  return ok(((r.data ?? []) as any[]).map((d) => ({
+    id: d.profile_id, name: d.profile?.business_name || d.profile?.full_name || '', phone: d.profile?.whatsapp_phone ?? null,
+    status: d.profile?.status ?? 'unknown', paused: !!d.paused, capacity_birds: d.capacity_birds ?? null, covered: !!d.covered,
+  })));
 }

@@ -9,6 +9,7 @@ import { Card, Check, NumberField } from '../supplier-driver-shared/ui';
 import { t } from '../supplier-driver-shared/t';
 import { SupplierNav } from './SupplierNav';
 import { getRequirements, saveRequirements } from './data';
+import { formatWindow, parseWindow, windowError } from './logic';
 import type { Requirements } from './types';
 
 const EMPTY: Requirements = {
@@ -42,6 +43,10 @@ export default function SupplierRequirements() {
     if (!profile) return;
     setMsg(null);
     setSaved(false);
+    if (windowError(parseWindow(r.loading_window))) {
+      setMsg(t('supplier.req.window_invalid'));
+      return;
+    }
     if (r.max_per_crate && r.max_per_crate_hot && r.max_per_crate_hot > r.max_per_crate) {
       setMsg(t('supplier.req.hot_exceeds'));
       return;
@@ -69,7 +74,7 @@ export default function SupplierRequirements() {
         </Card>
         <Card title={t('supplier.req.collection_title')}>
           <div className="flex flex-col gap-3">
-            <TextField id="window" label={t('supplier.req.loading_window')} placeholder="05:00 - 08:00" value={r.loading_window ?? ''} onChange={(e) => set('loading_window', e.target.value)} />
+            <WindowPicker value={r.loading_window} onChange={(v) => set('loading_window', v)} />
             <TextField id="point" label={t('supplier.req.collection_point')} value={r.collection_point ?? ''} onChange={(e) => set('collection_point', e.target.value)} />
             <NumberField id="journey" min={0} step={0.5} label={t('supplier.req.max_journey_hours')} value={r.max_journey_hours?.toString() ?? ''} onChange={(v) => set('max_journey_hours', num(v))} />
           </div>
@@ -85,5 +90,36 @@ export default function SupplierRequirements() {
         {saved && <span role="status" className="font-body text-sm text-green-700">{t('common.saved')}</span>}
       </div>
     </DashboardShell>
+  );
+}
+
+const timeInput =
+  'min-h-12 rounded-lg border border-ink/15 bg-white px-3 font-body text-base focus:border-chilli focus:outline-none focus:ring-2 focus:ring-chilli/30';
+
+/** Two time pickers (start and end) in place of typing "05:00-08:00" by hand. */
+function WindowPicker({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
+  const w = parseWindow(value);
+  const err = windowError(w);
+  const update = (next: Partial<typeof w>) => onChange(formatWindow({ ...w, ...next }));
+  return (
+    <fieldset className="flex flex-col gap-2">
+      <legend className="font-body text-sm font-semibold">{t('supplier.req.loading_window')}</legend>
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="flex flex-col gap-1 font-body text-sm">
+          {t('supplier.req.window_from')}
+          <input type="time" step={900} className={timeInput} value={w.from} onChange={(e) => update({ from: e.target.value })} />
+        </label>
+        <label className="flex flex-col gap-1 font-body text-sm">
+          {t('supplier.req.window_to')}
+          <input type="time" step={900} className={timeInput} value={w.to} min={w.from || undefined} onChange={(e) => update({ to: e.target.value })} />
+        </label>
+        {(w.from || w.to) && (
+          <button type="button" className="min-h-12 px-2 font-body text-sm font-semibold text-chilli" onClick={() => onChange(null)}>
+            {t('supplier.req.window_clear')}
+          </button>
+        )}
+      </div>
+      {err && <p role="alert" className="font-body text-xs text-chilli">{t('supplier.req.window_invalid')}</p>}
+    </fieldset>
   );
 }

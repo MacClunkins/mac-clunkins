@@ -18,9 +18,10 @@ function adminWorld() {
     weight_band: '2_to_2_5kg', quantity: 400, total_cents: null, expires_at: null, created_at: new Date().toISOString(),
   }]);
   m.table('addresses', [{ id: ADDRESS_ID, town: 'Soweto', province: 'GP' }]);
-  m.rpc('admin_match_preview', () => ({ data: [
-    { supplier_id: SUP_A, price_cents: 9000, distance_km: 12.5, same_province: true, stock_available: 300, rating_avg: 4.5, rank: 1 },
-    { supplier_id: SUP_B, price_cents: 7000, distance_km: 40, same_province: false, stock_available: 500, rating_avg: 4, rank: 2 },
+  m.table('driver_details', []);
+  m.rpc('admin_quote_candidates', () => ({ data: [
+    { supplier_id: SUP_A, eligible: true, reasons: [], price_cents: 9000, distance_km: 12.5, same_province: true, stock_available: 300, rating_avg: 4.5, rank: 1 },
+    { supplier_id: SUP_B, eligible: true, reasons: [], price_cents: 7000, distance_km: 40, same_province: false, stock_available: 500, rating_avg: 4, rank: 2 },
   ] }));
   m.rpc('admin_price_quote', () => ({ data: { total_cents: 123456 } }));
   m.rpc('admin_update_settings', () => ({ data: { changed: [] } }));
@@ -78,6 +79,45 @@ test.describe('admin: quote requests', () => {
         { supplier_id: SUP_B, birds: 100, price_cents: 7000 },
       ],
     });
+  });
+
+  test('a blocked quote says what is wrong, who to chase and gives a WhatsApp message', async ({ page }) => {
+    const m = adminWorld();
+    m.table('profiles', [
+      ...(m.tables.profiles ?? []),
+    ].map((p) => (p.id === SUP_A ? { ...p, whatsapp_phone: '082 111 2222' } : p)));
+    m.rpc('admin_quote_candidates', () => ({ data: [
+      { supplier_id: SUP_A, eligible: false, reasons: ['no_location', 'no_driver'], price_cents: 9000, distance_km: null, same_province: true, stock_available: 9000, rating_avg: null, rank: null },
+    ] }));
+    m.table('driver_details', [{
+      profile_id: 'd1', paused: false, capacity_birds: null, covered: false,
+      profile: { full_name: 'Test Driver', business_name: null, whatsapp_phone: null, status: 'active' },
+    }]);
+    await m.install(page);
+    await go(page, '/admin/quotes');
+    const box = page.getByTestId('quote-blockers');
+    await expect(box).toContainText('This quote cannot be priced yet');
+    await expect(box).toContainText('Supplier: Sipho Poultry');
+    await expect(box).toContainText('No farm gate location');
+    await expect(box).toContainText('Test Driver: Has not entered how many birds the vehicle carries');
+    // The supplier has a number, so there is a link with the message written out; the driver has none.
+    const wa = box.getByRole('link', { name: 'Message on WhatsApp' });
+    await expect(wa).toHaveCount(1);
+    const href = (await wa.getAttribute('href')) ?? '';
+    expect(href).toContain('https://wa.me/27821112222');
+    expect(decodeURIComponent(href)).toContain('Use my location');
+    await expect(box).toContainText('No phone number on file');
+    // Opening the price panel still lists the supplier but does not let you assign birds to it.
+    await page.getByRole('button', { name: 'Price this quote' }).click();
+    await expect(page.getByLabel('Birds Sipho Poultry')).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Send price to buyer' })).toBeDisabled();
+  });
+
+  test('a quote that can be priced says so and shows no blockers', async ({ page }) => {
+    await adminWorld().install(page);
+    await go(page, '/admin/quotes');
+    await expect(page.getByText('2 supplier(s) can fill this quote')).toBeVisible();
+    await expect(page.getByTestId('quote-blockers')).toHaveCount(0);
   });
 
   test('a refusal from the database is shown and the panel stays open', async ({ page }) => {

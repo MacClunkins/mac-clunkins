@@ -73,6 +73,10 @@ export const saveSupplierDetails = (
   d: { farm_name: string; pickup_address: string; province: string; location?: string },
 ) => supabase.from('supplier_details').upsert({ profile_id: profileId, ...d }, { onConflict: 'profile_id' });
 
+/** Saves the farm gate position on its own, so it is stored the moment the supplier captures it. */
+export const saveSupplierLocation = (profileId: string, location: string) =>
+  supabase.from('supplier_details').update({ location }).eq('profile_id', profileId);
+
 export const listProvinces = () => supabase.from('provinces').select('code, name').eq('active', true).order('name');
 
 export const listDocuments = () => supabase.from('documents').select(DOCUMENT_COLUMNS);

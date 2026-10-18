@@ -210,3 +210,30 @@ test('tracking: window ETA before pickup, live position and ETA on the road, not
   // And a late position after delivery is ignored.
   await act(c, ID.driver, 'select public.driver_update_location($1, -26.2, 27.9)', [trip.id]);
 });
+
+test('admin_quote_candidates explains why a supplier is left out, and ranks the ones that qualify', async () => {
+  const req = (await requestQuote(400));
+  assert.equal(req.kind, 'requested');
+  const rows = await act(c, ID.admin, 'select * from public.admin_quote_candidates($1)', [req.quote_id]);
+  const by = Object.fromEntries(rows.map((r) => [r.supplier_id, r]));
+  assert.equal(by[ID.s4].eligible, true);
+  assert.deepEqual(by[ID.s4].reasons, []);
+  assert.ok(by[ID.s4].rank >= 1);
+  // The fixtures exclude each of these for exactly one reason.
+  assert.deepEqual(by[ID.paused].reasons, ['paused']);
+  assert.deepEqual(by[ID.noDoc].reasons, ['docs']);
+  assert.deepEqual(by[ID.pending].reasons, ['not_active']);
+  assert.deepEqual(by[ID.controlled].reasons, ['flu_zone']);
+  assert.deepEqual(by[ID.inactivePrice].reasons, ['no_price']);
+  // No location -> named, and no driver -> named for every supplier.
+  await c.query('update public.supplier_details set location = null where profile_id = $1', [ID.s4]);
+  const noLoc = (await act(c, ID.admin, 'select * from public.admin_quote_candidates($1)', [req.quote_id])).find((r) => r.supplier_id === ID.s4);
+  assert.equal(noLoc.eligible, false);
+  assert.ok(noLoc.reasons.includes('no_location'));
+  await c.query('update public.driver_details set capacity_birds = null');
+  const noDrv = (await act(c, ID.admin, 'select * from public.admin_quote_candidates($1)', [req.quote_id])).find((r) => r.supplier_id === ID.s1);
+  assert.ok(noDrv.reasons.includes('no_driver'));
+  // Only admins can ask.
+  assert.equal((await actTry(c, ID.buyer, 'select * from public.admin_quote_candidates($1)', [req.quote_id])).error?.code, '42501');
+  assert.equal((await actTry(c, ID.s4, 'select * from public.admin_quote_candidates($1)', [req.quote_id])).error?.code, '42501');
+});

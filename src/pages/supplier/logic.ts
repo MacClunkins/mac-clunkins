@@ -77,3 +77,29 @@ export function readyBlockers(a: ReadyCheckInput, now: Date = new Date()): strin
   }
   return out;
 }
+
+/** The loading window is stored as "HH:MM-HH:MM" in 24-hour time. */
+export interface TimeWindow { from: string; to: string }
+
+const HHMM = /^([01]?\d|2[0-3]):([0-5]\d)$/;
+const pad = (t: string) => (HHMM.test(t) ? t.replace(/^(\d):/, '0$1:') : '');
+
+/** Reads "05:00-07:00", "05:00 - 07:00" or "5:00 to 7:00"; anything else gives an empty window. */
+export function parseWindow(raw: string | null | undefined): TimeWindow {
+  const parts = (raw ?? '').split(/\s*(?:-|–|—|to)\s*/i).map((x) => x.trim());
+  if (parts.length !== 2) return { from: '', to: '' };
+  return { from: pad(parts[0]), to: pad(parts[1]) };
+}
+
+/** Empty when neither time is set; otherwise "HH:MM-HH:MM". Half a window is kept so typing is not lost. */
+export function formatWindow(w: TimeWindow): string | null {
+  if (!w.from && !w.to) return null;
+  return `${w.from}-${w.to}`;
+}
+
+/** A window is fine when empty, or when both times are set and the end is after the start. */
+export function windowError(w: TimeWindow): 'incomplete' | 'order' | null {
+  if (!w.from && !w.to) return null;
+  if (!w.from || !w.to) return 'incomplete';
+  return w.to > w.from ? null : 'order';
+}

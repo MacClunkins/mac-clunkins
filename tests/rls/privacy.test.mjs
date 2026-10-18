@@ -390,7 +390,7 @@ describe('8. anonymous reads only the public reference data', () => {
     });
   });
 
-  test('every one of the other 26 tables yields nothing', async () => {
+  test('every one of the other 27 tables yields nothing', async () => {
     const outcomes = {};
     await asRole(db, null, async ({ tryQ }) => {
       for (const table of ALL_TABLES) {
@@ -398,7 +398,7 @@ describe('8. anonymous reads only the public reference data', () => {
         outcomes[table] = await assertNoData(tryQ, `select * from public.${table}`, [], `anon -> ${table}`);
       }
     });
-    assert.equal(Object.keys(outcomes).length, 26, 'all 26 non-public tables must be checked');
+    assert.equal(Object.keys(outcomes).length, 27, 'all 27 non-public tables must be checked');
   });
 
   test('anonymous cannot create a profile or write anything', async () => {
