@@ -11,6 +11,7 @@ export function SupplierNav() {
         { to: '/supplier/requirements', label: t('supplier.nav.requirements') },
         { to: '/supplier/onboarding', label: t('supplier.nav.onboarding') },
         { to: '/supplier/payouts', label: t('supplier.nav.payouts') },
+        { to: '/supplier/help', label: t('supplier.nav.help') },
       ]}
     />
   );
